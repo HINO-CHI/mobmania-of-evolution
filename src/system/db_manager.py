@@ -52,6 +52,27 @@ class DBManager:
         self.conn.commit()
         # デバッグ用: コンソールに生存時間を表示
         print(f"Mob logged: Speed={mob.stats['speed']}, Survived={survival_time:.2f}s")
+    
+    def get_top_survivors(self, biome, limit=10):
+        """
+        指定されたバイオームで、生存時間が長かった上位の個体のステータスを取得する
+        """
+        query = """
+        SELECT speed, hp 
+        FROM mob_history 
+        WHERE biome = ? 
+        ORDER BY survival_time DESC 
+        LIMIT ?
+        """
+        self.cursor.execute(query, (biome, limit))
+        rows = self.cursor.fetchall()
+        
+        # 辞書型のリストに変換して返す
+        survivors = []
+        for r in rows:
+            survivors.append({"speed": r[0], "hp": r[1]})
+            
+        return survivors
 
     def close(self):
         self.conn.close()
