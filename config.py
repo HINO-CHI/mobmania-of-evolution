@@ -1,4 +1,3 @@
-# config.py
 import pygame
 
 # 画面設定
@@ -7,14 +6,21 @@ SCREEN_HEIGHT = 720
 FPS = 60
 CAPTION = "MobMania Evolution"
 
-# 色の定義 (R, G, B)
+# 色の定義
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-BG_COLOR = (40, 40, 40) # 暗いグレー
+YELLOW = (255, 255, 0)
+BG_COLOR = (40, 40, 40)
 
 # プレイヤー設定
-PLAYER_SPEED = 300  # 1秒間に進むピクセル数
+PLAYER_SPEED = 300
 PLAYER_SIZE = 40
+
+# 攻撃設定 (新規追加)
+BULLET_SPEED = 600
+BULLET_SIZE = 10
+BULLET_COLOR = YELLOW
+ATTACK_COOLDOWN = 500 # 0.5秒間隔 (テスト用)
