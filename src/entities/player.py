@@ -8,6 +8,9 @@ from src.entities.bullet import Bullet
 class Player(pygame.sprite.Sprite):
     def __init__(self, start_pos, all_sprites, bullets_group):
         super().__init__()
+
+        display_size = int(config.PLAYER_SIZE * config.GLOBAL_SCALE)
+
         self.image = pygame.Surface((config.PLAYER_SIZE, config.PLAYER_SIZE))
         self.image.fill(config.PLAYER_COLOR)
         self.rect = self.image.get_rect()
