@@ -6,21 +6,28 @@ import config
 from src.entities.player import Player
 from src.entities.enemy import Enemy
 from src.system.db_manager import DBManager
-from src.system.evolution import EvolutionManager # 追加
+from src.system.evolution import EvolutionManager
+
+# --- 追加: 当たり判定のルール関数 ---
+def collide_hit_rect(one, two):
+    # スプライトが hitbox を持っていれば使い、なければ rect を使う
+    r1 = getattr(one, 'hitbox', one.rect)
+    r2 = getattr(two, 'hitbox', two.rect)
+    return r1.colliderect(r2)
+# -------------------------------
 
 class GameplayScreen:
     def __init__(self, biome_type):
         self.biome = biome_type
         self.db = DBManager()
-        self.evo_manager = EvolutionManager(self.db) # 追加
+        self.evo_manager = EvolutionManager(self.db)
 
         # Wave管理
         self.current_generation = 1
         self.mobs_killed_in_wave = 0
-        self.wave_threshold = 5  # テスト用に「5体倒したら進化」にする
-        self.pending_stats_queue = [] # 次にスポーンする予定の遺伝子リスト
+        self.wave_threshold = 5
+        self.pending_stats_queue = []
 
-        # ... (グループ初期化、プレイヤー生成などは変更なし) ...
         self.all_sprites = pygame.sprite.Group()
         self.bullets_group = pygame.sprite.Group()
         self.enemies_group = pygame.sprite.Group()
@@ -32,10 +39,11 @@ class GameplayScreen:
         )
         self.all_sprites.add(self.player)
         
-        # ... (背景色設定などは変更なし) ...
         self.bg_color = config.BG_COLOR
         if self.biome == "grass": self.bg_color = (34, 139, 34)
-        # ... 
+        elif self.biome == "water": self.bg_color = (30, 144, 255)
+        elif self.biome == "volcano": self.bg_color = (139, 0, 0)
+        elif self.biome == "cloud": self.bg_color = (200, 200, 255)
 
         self.last_spawn_time = 0
         self.spawn_interval = 800
@@ -48,31 +56,50 @@ class GameplayScreen:
         self.spawn_enemies()
         self.all_sprites.update(dt)
         
-        hits = pygame.sprite.groupcollide(self.bullets_group, self.enemies_group, True, False)
+       # src/scenes/gameplay.py の updateメソッド内
+
+        # --- 変更: 当たり判定とダメージ処理 ---
+        # groupcollideの第3引数(弾)はTrue(消える)、第4引数(敵)はFalse(消えない)にする！
+        hits = pygame.sprite.groupcollide(
+            self.bullets_group, 
+            self.enemies_group, 
+            True,   # 弾は当たったら消える
+            False,  # 敵はHP判定するので、ここではまだ消さない！
+            collided=collide_hit_rect
+        )
         
         for bullet, enemies_hit in hits.items():
             for enemy in enemies_hit:
-                enemy.death_time = time.time()
-                # ログ保存 (現在の世代を記録)
-                self.db.log_mob_death(enemy, generation=self.current_generation, biome=self.biome)
-                enemy.kill()
+                # 弾の持っているダメージを与える
+                is_dead = enemy.take_damage(bullet.damage)
+                
+                if is_dead:
+                    enemy.death_time = time.time()
+                    self.db.log_mob_death(enemy, generation=self.current_generation, biome=self.biome)
+                    enemy.kill() # ここで初めて消す
 
-                # --- 進化判定 ---
-                self.mobs_killed_in_wave += 1
-                if self.mobs_killed_in_wave >= self.wave_threshold:
-                    self.start_next_wave()
-                # ----------------
+                    # 進化判定
+                    self.mobs_killed_in_wave += 1
+                    if self.mobs_killed_in_wave >= self.wave_threshold:
+                        self.start_next_wave()
 
-        # ... (プレイヤーの当たり判定は変更なし) ...
+        # プレイヤーへの当たり判定も hitbox を使う
+        hits_player = pygame.sprite.spritecollide(
+            self.player, 
+            self.enemies_group, 
+            False, 
+            collided=collide_hit_rect # <--- ここも重要
+        )
+        if hits_player:
+            print("ダメージ！")
+
         return None
 
     def start_next_wave(self):
-        """次世代を開始する処理"""
         self.current_generation += 1
         self.mobs_killed_in_wave = 0
         print(f"=== WAVE {self.current_generation} START! ===")
         
-        # 進化マネージャーを使って、次の20体分の遺伝子を生成してキューに入れる
         new_stats_list = self.evo_manager.create_next_generation_stats(self.biome, 20)
         
         if new_stats_list:
@@ -83,13 +110,10 @@ class GameplayScreen:
         if current_time - self.last_spawn_time > self.spawn_interval:
             spawn_pos = self.get_random_spawn_pos()
             
-            # --- 進化した遺伝子を使う ---
             stats_to_use = None
             if self.pending_stats_queue:
-                stats_to_use = self.pending_stats_queue.pop(0) # キューから取り出す
-            # ------------------------
+                stats_to_use = self.pending_stats_queue.pop(0)
             
-            # stats_to_use を渡して敵を生成
             enemy = Enemy(spawn_pos, self.player, stats=stats_to_use)
             
             self.all_sprites.add(enemy)
