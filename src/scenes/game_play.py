@@ -28,7 +28,7 @@ class GameplayScreen:
         self.bullets_group = pygame.sprite.Group()
         self.enemies_group = pygame.sprite.Group()
 
-        # フルスクリーン対応のため、画面中央の計算に config.SCREEN_WIDTH を使用
+        # プレイヤー作成
         self.player = Player(
             (config.SCREEN_WIDTH // 2, config.SCREEN_HEIGHT // 2), 
             self.all_sprites, 
@@ -36,6 +36,7 @@ class GameplayScreen:
         )
         self.all_sprites.add(self.player)
         
+        # 背景色設定
         self.bg_color = config.BG_COLOR
         if self.biome == "grass": self.bg_color = (34, 139, 34)
         elif self.biome == "water": self.bg_color = (30, 144, 255)
@@ -45,22 +46,18 @@ class GameplayScreen:
         self.last_spawn_time = 0
         self.spawn_interval = 800
 
-    # ★★★ 追加: このメソッドが必要です ★★★
     def handle_events(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN:
-                # ESCキーでタイトルに戻る
                 if event.key == pygame.K_ESCAPE:
                     return "TITLE"
         return None
-    # ★★★★★★★★★★★★★★★★★★★★★★
 
     def update(self, dt):
-        # handle_eventsで処理するので、ここのキー判定は削除しても良いですが、
-        # 万が一のために残しておいても害はありません
         self.spawn_enemies()
         self.all_sprites.update(dt)
         
+        # 弾と敵の衝突判定
         hits = pygame.sprite.groupcollide(
             self.bullets_group, 
             self.enemies_group, 
@@ -80,6 +77,7 @@ class GameplayScreen:
                     if self.mobs_killed_in_wave >= self.wave_threshold:
                         self.start_next_wave()
 
+        # プレイヤーと敵の衝突判定
         hits_player = pygame.sprite.spritecollide(
             self.player, 
             self.enemies_group, 
@@ -87,7 +85,8 @@ class GameplayScreen:
             collided=collide_hit_rect
         )
         if hits_player:
-            print("ダメージ！")
+            # ここにプレイヤーのダメージ処理を入れる予定
+            pass
 
         return None
 
@@ -103,10 +102,14 @@ class GameplayScreen:
         current_time = pygame.time.get_ticks()
         if current_time - self.last_spawn_time > self.spawn_interval:
             spawn_pos = self.get_random_spawn_pos()
+            
             stats_to_use = None
             if self.pending_stats_queue:
                 stats_to_use = self.pending_stats_queue.pop(0)
-            enemy = Enemy(spawn_pos, self.player, stats=stats_to_use)
+            
+            # ★ここで self.enemies_group を渡しています
+            enemy = Enemy(spawn_pos, self.player, self.enemies_group, stats=stats_to_use)
+            
             self.all_sprites.add(enemy)
             self.enemies_group.add(enemy)
             self.last_spawn_time = current_time
@@ -117,7 +120,6 @@ class GameplayScreen:
 
     def get_random_spawn_pos(self):
         edge = random.choice(['top', 'bottom', 'left', 'right'])
-        # config.SCREEN_WIDTH/HEIGHT を使うことでフルスクリーンに対応
         if edge == 'top':
             return (random.randint(0, config.SCREEN_WIDTH), -50)
         elif edge == 'bottom':
