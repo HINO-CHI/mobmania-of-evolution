@@ -25,11 +25,15 @@ ORANGE = (255, 165, 0)
 BG_COLOR = (30, 30, 30)
 
 # --- プレイヤー設定 ---
-PLAYER_SIZE = 40
+PLAYER_SIZE = 80
 PLAYER_SPEED = 300
 PLAYER_COLOR = RED
 ATTACK_COOLDOWN = 500  # ミリ秒
 PLAYER_DAMAGE = 10     # 基礎攻撃力
+
+# ★追加: プレイヤー画像の設定
+PLAYER_IMAGE_DIR = "assets/images/player"
+PLAYER_IMAGE = "player_normal.png"
 
 # --- 弾丸設定 ---
 BULLET_SPEED = 600
