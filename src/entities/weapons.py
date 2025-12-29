@@ -11,7 +11,7 @@ from src.entities.bullet import Bullet
 def load_weapon_image(key):
     stats = config.WEAPON_STATS.get(key)
     if not stats:
-        return None
+        return create_fallback_surface(32, config.RED)
     
     filename = stats.get("image")
     size = stats.get("size", 32)
@@ -21,29 +21,35 @@ def load_weapon_image(key):
         img = pygame.image.load(path).convert_alpha()
         img = pygame.transform.scale(img, (size, size))
         return img
-    except FileNotFoundError:
-        print(f"Warning: Image not found {path}")
-        return None
+    except (FileNotFoundError, pygame.error):
+        # 画像がない場合はフォールバック
+        color = config.BROWN if key == "stick" else config.YELLOW
+        if key == "thunder": color = config.YELLOW
+        elif key == "ice": color = config.CYAN
+        elif key == "drill": color = config.RED
+        return create_fallback_surface(size, color)
+
+def create_fallback_surface(size, color):
+    surf = pygame.Surface((size, size // 2))
+    surf.fill(color)
+    return surf
 
 # ==========================================
-# ★追加: 回転する弾丸クラス
+# 回転する弾丸クラス
 # ==========================================
 class SpinningBullet(Bullet):
     def __init__(self, pos, dir, damage, image, spin_speed):
         super().__init__(pos, dir, damage, image)
-        self.orig_image = image  # 回転させる前の元画像を保存
+        self.orig_image = image
         self.angle = 0
         self.spin_speed = spin_speed
 
     def update(self, dt):
-        # 通常の移動処理
         super().update(dt)
-        
-        # 回転処理 (元画像を毎回回転させて劣化を防ぐ)
-        self.angle = (self.angle + self.spin_speed) % 360
-        self.image = pygame.transform.rotate(self.orig_image, self.angle)
-        # 回転すると矩形サイズが変わるので中心位置を合わせ直す
-        self.rect = self.image.get_rect(center=self.rect.center)
+        if self.orig_image:
+            self.angle = (self.angle + self.spin_speed) % 360
+            self.image = pygame.transform.rotate(self.orig_image, self.angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
 
 # ==========================================
 # くま爆弾クラス
@@ -74,11 +80,9 @@ class BearBomb(pygame.sprite.Sprite):
         
         hits = pygame.sprite.spritecollide(explosion_area, self.enemy_group, False, pygame.sprite.collide_circle)
         for enemy in hits:
-            # 武器ダメージを与えて、倒したらkillする処理はGameplayScreenで一括管理しているので
-            # ここではダメージを与えるだけにする（kill判定はupdateで行う）
             enemy.take_damage(self.damage)
         
-        print("Bear Bomb Exploded!") 
+        # print("Bear Bomb Exploded!") 
         self.kill()
 
 # ==========================================
@@ -102,7 +106,7 @@ class Weapon:
         print(f"{self.name} Leveled Up! -> Lv.{self.level}")
 
 # ==========================================
-# ★追加: レベル0 木の棒 (回転投げ)
+# Tier 0: 木の棒
 # ==========================================
 class WoodenStick(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -127,7 +131,6 @@ class WoodenStick(Weapon):
         if direction.length() > 0:
             direction = direction.normalize()
             
-            # 回転する弾丸(SpinningBullet)を生成
             bullet = SpinningBullet(
                 self.owner.pos, 
                 direction, 
@@ -136,7 +139,6 @@ class WoodenStick(Weapon):
                 self.spin_speed
             )
             bullet.speed = self.bullet_speed
-            
             self.all_sprites.add(bullet)
             self.bullets_group.add(bullet)
             
@@ -146,7 +148,7 @@ class WoodenStick(Weapon):
         self.damage += 2
 
 # ==========================================
-# 武器1: えんぴつ
+# Tier 1: えんぴつ
 # ==========================================
 class PencilGun(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -173,7 +175,6 @@ class PencilGun(Weapon):
             bullet = Bullet(self.owner.pos, direction, self.damage, self.bullet_image)
             bullet.speed = self.bullet_speed
             
-            # えんぴつは進行方向に向けて一度だけ回転
             angle = math.degrees(math.atan2(-direction.y, direction.x)) - 90
             bullet.image = pygame.transform.rotate(bullet.image, angle)
             bullet.rect = bullet.image.get_rect(center=bullet.rect.center)
@@ -187,24 +188,19 @@ class PencilGun(Weapon):
         self.damage += int(self.damage * 0.2) 
 
 # ==========================================
-# 武器2: 食パン
+# Tier 1: 食パン
 # ==========================================
 class BreadShield(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
         super().__init__(owner, enemy_group, all_sprites, bullets_group)
         stats = config.WEAPON_STATS["bread"]
-        
         self.name = stats["name"]
         self.damage = stats["damage"]
         self.radius = stats["radius"]
         self.orb_count = stats["orb_count"]
         self.speed = stats["rot_speed"]
         self.angle = 0
-        
         self.image = load_weapon_image("bread")
-        if not self.image:
-            self.image = pygame.Surface((20, 20))
-            self.image.fill(config.CYAN)
         
         self.orbs = []
         for i in range(self.orb_count):
@@ -218,14 +214,11 @@ class BreadShield(Weapon):
     def update(self, current_time):
         self.angle += self.speed
         cx, cy = self.owner.rect.center
-        
         for i, orb in enumerate(self.orbs):
             offset = (2 * math.pi / self.orb_count) * i
             current_orb_angle = self.angle + offset
-            
             orb.rect.centerx = cx + math.cos(current_orb_angle) * self.radius
             orb.rect.centery = cy + math.sin(current_orb_angle) * self.radius
-
             hits = pygame.sprite.spritecollide(orb, self.enemy_group, False)
             for enemy in hits:
                 enemy.take_damage(self.damage / 5.0)
@@ -237,19 +230,17 @@ class BreadShield(Weapon):
         self.damage += 2
 
 # ==========================================
-# 武器3: くまちゃん
+# Tier 1: くまちゃん
 # ==========================================
 class BearSmash(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
         super().__init__(owner, enemy_group, all_sprites, bullets_group)
         stats = config.WEAPON_STATS["bear"]
-        
         self.name = stats["name"]
         self.damage = stats["damage"]
         self.cooldown = stats["cooldown"]
         self.fuse_time = stats["fuse_time"]
         self.blast_radius = stats["blast_radius"]
-        
         self.image = load_weapon_image("bear")
 
     def update(self, current_time):
@@ -263,20 +254,44 @@ class BearSmash(Weapon):
             spawn_x = self.owner.pos.x - offset
         else:
             spawn_x = self.owner.pos.x + offset
-        
         spawn_pos = Vector2(spawn_x, self.owner.pos.y)
-        
-        bomb = BearBomb(
-            spawn_pos, 
-            self.damage, 
-            self.enemy_group, 
-            self.image, 
-            self.fuse_time, 
-            self.blast_radius
-        )
+        bomb = BearBomb(spawn_pos, self.damage, self.enemy_group, self.image, self.fuse_time, self.blast_radius)
         self.all_sprites.add(bomb)
 
     def upgrade(self):
         super().upgrade()
         self.cooldown -= 100
         self.damage += 10
+
+# ==========================================
+# Tier 2: 雷の杖 (ThunderStaff)
+# ==========================================
+class ThunderStaff(PencilGun):
+    def __init__(self, owner, enemy_group, all_sprites, bullets_group):
+        super().__init__(owner, enemy_group, all_sprites, bullets_group)
+        stats = config.WEAPON_STATS["thunder"]
+        self.name = stats["name"]
+        self.damage = stats["damage"]
+        self.bullet_image = load_weapon_image("thunder")
+
+# ==========================================
+# Tier 2: アイス (IceCream)
+# ==========================================
+class IceCream(PencilGun):
+    def __init__(self, owner, enemy_group, all_sprites, bullets_group):
+        super().__init__(owner, enemy_group, all_sprites, bullets_group)
+        stats = config.WEAPON_STATS["ice"]
+        self.name = stats["name"]
+        self.damage = stats["damage"]
+        self.bullet_image = load_weapon_image("ice")
+
+# ==========================================
+# Tier 2: ドリル (GigaDrill)
+# ==========================================
+class GigaDrill(PencilGun):
+    def __init__(self, owner, enemy_group, all_sprites, bullets_group):
+        super().__init__(owner, enemy_group, all_sprites, bullets_group)
+        stats = config.WEAPON_STATS["drill"]
+        self.name = stats["name"]
+        self.damage = stats["damage"]
+        self.bullet_image = load_weapon_image("drill")

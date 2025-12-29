@@ -24,6 +24,61 @@ MAGENTA = (255, 0, 255)
 ORANGE = (255, 165, 0)
 BG_COLOR = (30, 30, 30)
 
+# Mobmania風カラーパレット
+UI_BG_COLOR = (245, 222, 179)      # 薄いベージュ (背景)
+UI_BORDER_COLOR = (255, 255, 255)  # 白 (枠線)
+UI_TEXT_COLOR = (60, 40, 40)       # 濃い焦げ茶 (文字色)
+UI_HIGHLIGHT_COLOR = (255, 240, 200) # 選択中の明るい色
+UI_RIBBON_COLOR = (255, 140, 0)    # オレンジ (リボン)
+
+# ==========================================
+# UI SETTINGS (Mobmania Style)
+# ==========================================
+
+# フォント
+FONT_PATH = "assets/fonts/pixel_font.ttf"
+
+# 色設定
+UI_COLORS = {
+    "bg": (245, 222, 179),           # ベージュ背景
+    "border": (255, 255, 255),       # 白枠
+    "ribbon": (255, 140, 0),         # オレンジリボン
+    "ribbon_border": (255, 255, 255),
+    "text_title": (255, 255, 255),
+    "text_body": (60, 40, 40),       # 焦げ茶
+    "text_detail": (100, 80, 80),
+    "item_bg_normal": (235, 215, 180),
+    "item_bg_hover": (255, 245, 220),
+    "item_border_normal": (200, 180, 150),
+    "item_border_hover": (255, 0, 0), # 赤
+}
+
+# レイアウト設定 (ここをいじれば大きさ変え放題！)
+LEVELUP_SCREEN = {
+    # メインパネル
+    "panel_width": 1000,    # 大きく！
+    "panel_height": 750,
+    "border_thickness": 8,
+    
+    # リボン
+    "ribbon_width": 600,
+    "ribbon_height": 80,
+    "ribbon_offset_y": 40,  # パネルの上端からどれだけ飛び出させるか
+    
+    # リスト配置
+    "list_start_y": 100,    # パネル上端からの開始位置
+    "item_height": 160,     # 各カードの高さ
+    "item_gap": 25,         # カード間の隙間
+    
+    # アイコン・装飾
+    "icon_size": 100,       # アイコン画像サイズ
+    
+    # フォントサイズ
+    "font_size_title": 56,
+    "font_size_name": 36,
+    "font_size_detail": 24
+}
+
 # --- プレイヤー設定 ---
 PLAYER_SIZE = 80
 PLAYER_SPEED = 300
@@ -109,55 +164,61 @@ MOB_BASE_STATS = {
         "attack_type": "contact"
     }
 }
+# config.py (WEAPON_STATS部分)
 
 # ==========================================
-# WEAPON SETTINGS (武器設定)
+# WEAPON SETTINGS
 # ==========================================
 ITEM_IMAGE_DIR = "assets/images/items"
 
-# 武器ごとのパラメータをここで一元管理
+# Tier 1: 初期〜序盤
+# Tier 2: レベル2で解放される武器
 WEAPON_STATS = {
-    # --- レベル0: 木の棒 (初期装備) ---
+    # --- Tier 0: 初期装備 ---
     "stick": {
         "name": "Wooden Stick",
-        "image": "items-level0-edge.png", # 拡張子はpngと仮定
-        "size": 80,          # 少し小さめ
-        "damage": 5,         # 最弱
-        "cooldown": 600,     # 連射速度は普通
-        "speed": 500,        # 弾速
-        "spin_speed": 15     # 回転速度
+        "tier": 0,
+        "image": "items-level0-edge.png",
+        "size": 80, "damage": 5, "cooldown": 600, "speed": 500, "spin_speed": 15
     },
 
-    # --- 武器1: えんぴつ (直線射撃) ---
+    # --- Tier 1: レベル1武器 (既存) ---
     "pencil": {
         "name": "Magic Pencil",
+        "tier": 1,
         "image": "items-level1-enpitu.png",
-        "size": 60,          # 画像サイズ(px)
-        "damage": 10,        # 威力
-        "cooldown": 500,     # 発射間隔(ms)
-        "speed": 600         # 弾速(px/s)
+        "size": 60, "damage": 10, "cooldown": 500, "speed": 600
     },
-
-    # --- 武器2: 食パン (回転シールド) ---
     "bread": {
         "name": "Guardian Bread",
+        "tier": 1,
         "image": "items-level1-shokupan.png",
-        "size": 50,
-        "damage": 5,
-        "radius": 140,       # 回転半径
-        "orb_count": 3,      # 個数
-        "rot_speed": 0.05    # 回転速度
+        "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05
     },
-
-    # --- 武器3: くまちゃん (設置爆弾) ---
     "bear": {
         "name": "Bear Bomber",
+        "tier": 1,
         "image": "items-level1-kumanuigurumi.png",
-        "size": 120,
-        "damage": 50,
-        "cooldown": 1500,
-        "fuse_time": 1000,   # 爆発までの時間
-        "blast_radius": 150  # 爆発範囲
+        "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150
+    },
+
+    # --- Tier 2: レベル2武器 (新規枠組み・画像はまだない) ---
+    "thunder": {
+        "name": "Thunder Staff",
+        "tier": 2,
+        "image": "items-level2-thunder.png", # 後で画像を追加
+        "size": 60, "damage": 15, "cooldown": 800
+    },
+    "ice": {
+        "name": "Ice Cream Cone",
+        "tier": 2,
+        "image": "items-level2-ice.png",
+        "size": 50, "damage": 8, "cooldown": 400
+    },
+    "drill": {
+        "name": "Giga Drill",
+        "tier": 2,
+        "image": "items-level2-drill.png",
+        "size": 70, "damage": 20, "cooldown": 1000
     }
-    
 }
