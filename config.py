@@ -109,3 +109,55 @@ MOB_BASE_STATS = {
         "attack_type": "contact"
     }
 }
+
+# ==========================================
+# WEAPON SETTINGS (武器設定)
+# ==========================================
+ITEM_IMAGE_DIR = "assets/images/items"
+
+# 武器ごとのパラメータをここで一元管理
+WEAPON_STATS = {
+    # --- レベル0: 木の棒 (初期装備) ---
+    "stick": {
+        "name": "Wooden Stick",
+        "image": "items-level0-edge.png", # 拡張子はpngと仮定
+        "size": 80,          # 少し小さめ
+        "damage": 5,         # 最弱
+        "cooldown": 600,     # 連射速度は普通
+        "speed": 500,        # 弾速
+        "spin_speed": 15     # 回転速度
+    },
+
+    # --- 武器1: えんぴつ (直線射撃) ---
+    "pencil": {
+        "name": "Magic Pencil",
+        "image": "items-level1-enpitu.png",
+        "size": 60,          # 画像サイズ(px)
+        "damage": 10,        # 威力
+        "cooldown": 500,     # 発射間隔(ms)
+        "speed": 600         # 弾速(px/s)
+    },
+
+    # --- 武器2: 食パン (回転シールド) ---
+    "bread": {
+        "name": "Guardian Bread",
+        "image": "items-level1-shokupan.png",
+        "size": 50,
+        "damage": 5,
+        "radius": 140,       # 回転半径
+        "orb_count": 3,      # 個数
+        "rot_speed": 0.05    # 回転速度
+    },
+
+    # --- 武器3: くまちゃん (設置爆弾) ---
+    "bear": {
+        "name": "Bear Bomber",
+        "image": "items-level1-kumanuigurumi.png",
+        "size": 120,
+        "damage": 50,
+        "cooldown": 1500,
+        "fuse_time": 1000,   # 爆発までの時間
+        "blast_radius": 150  # 爆発範囲
+    }
+    
+}

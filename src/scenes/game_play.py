@@ -28,11 +28,12 @@ class GameplayScreen:
         self.bullets_group = pygame.sprite.Group()
         self.enemies_group = pygame.sprite.Group()
 
-        # プレイヤー作成
+        # ★変更: 第4引数に self.enemies_group を渡すように修正
         self.player = Player(
             (config.SCREEN_WIDTH // 2, config.SCREEN_HEIGHT // 2), 
             self.all_sprites, 
-            self.bullets_group
+            self.bullets_group,
+            self.enemies_group  # <--- これを追加！
         )
         self.all_sprites.add(self.player)
         
