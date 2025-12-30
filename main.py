@@ -2,6 +2,8 @@ import pygame
 import config
 from src.scenes.title_screen import TitleScreen
 from src.scenes.game_play import GameplayScreen
+# ★追加: ステージ選択画面をインポート
+from src.scenes.stage_select import StageSelectScreen
 # ジョイスティック（コントローラー）用
 from pygame.locals import *
 
@@ -45,6 +47,7 @@ def main():
     # シーン管理
     scenes = {
         "TITLE": TitleScreen(),
+        "STAGE_SELECT": StageSelectScreen(), # ★追加: ステージ選択画面を登録
         "GAMEPLAY": None 
     }
     current_scene_key = "TITLE"
@@ -60,13 +63,30 @@ def main():
                 running = False
             
             # シーンごとのイベント処理
+            # シーンから次のアクションを受け取る
             action = current_scene.handle_events(events)
+            
             if action:
+                # パターンA: タイトルでスタート -> ステージ選択へ
                 if action == "START_GAME":
-                    scenes["GAMEPLAY"] = GameplayScreen("grass")
+                    print("Transition: Title -> Stage Select")
+                    current_scene_key = "STAGE_SELECT"
+                    current_scene = scenes["STAGE_SELECT"]
+                
+                # パターンB: ステージ選択で決定 -> ゲーム開始
+                # ステージ選択画面からは ("GAMEPLAY", "stage_key") というタプルが返ってくる想定
+                elif isinstance(action, tuple) and action[0] == "GAMEPLAY":
+                    stage_key = action[1]
+                    print(f"Transition: Stage Select -> Gameplay ({stage_key})")
+                    
+                    # 選ばれたステージでゲーム画面を初期化
+                    scenes["GAMEPLAY"] = GameplayScreen(stage_key)
                     current_scene_key = "GAMEPLAY"
                     current_scene = scenes["GAMEPLAY"]
+
+                # パターンC: タイトルへ戻る
                 elif action == "TITLE":
+                    print("Transition: -> Title")
                     current_scene_key = "TITLE"
                     current_scene = scenes["TITLE"]
 

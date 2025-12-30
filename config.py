@@ -222,3 +222,33 @@ WEAPON_STATS = {
         "size": 70, "damage": 20, "cooldown": 1000
     }
 }
+
+# ==========================================
+# ステージ設定
+# ==========================================
+STAGE_SETTINGS = {
+    "grass": {
+        "display_name": "Meadow",
+        "desc": "Peaceful training ground.",
+        "difficulty": 1,
+        "bg_color": (34, 139, 34)
+    },
+    "water": {
+        "display_name": "Coast",
+        "desc": "Slippery aquatic zone.",
+        "difficulty": 2,
+        "bg_color": (30, 144, 255)
+    },
+    "volcano": {
+        "display_name": "Inferno",
+        "desc": "Scorching heat awaits.",
+        "difficulty": 3,
+        "bg_color": (139, 0, 0)
+    },
+    "cloud": {
+        "display_name": "Sky High",
+        "desc": "Battle in the clouds.",
+        "difficulty": 4,
+        "bg_color": (200, 200, 255)
+    }
+}
