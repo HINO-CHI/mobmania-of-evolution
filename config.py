@@ -252,3 +252,30 @@ STAGE_SETTINGS = {
         "bg_color": (200, 200, 255)
     }
 }
+
+# ==========================================
+# MAP SETTINGS
+# ==========================================
+MAP_IMAGE_DIR = "assets/images/maps/stage1"
+
+# ステージごとの背景色や設定
+STAGE_SETTINGS = {
+    "grass": {
+        "display_name": "Meadow",
+        "desc": "Peaceful training ground.",
+        "difficulty": 1,
+        "bg_color": (120, 230, 120), # 明るい緑
+        # 生成に使用するアセットリスト
+        "assets": {
+            "obstacles": [
+                "stage1-iwa1.png", "stage1-iwa2.png", "stage1-koiwa.png",
+                "stage1-ki1.png", "stage1-ki2.png", "stage1-ki3.png"
+            ],
+            "decorations": [
+                "stage1-kusa2.png", "stage1-kusa3.png", 
+                "stage1-kusa3-hana.png", "stage1-kusa5.png"
+            ]
+        }
+    },
+    # ... (他のステージ設定はそのまま) ...
+}

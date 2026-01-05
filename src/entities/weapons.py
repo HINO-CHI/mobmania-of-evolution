@@ -7,7 +7,7 @@ from pygame.math import Vector2
 import config
 from src.entities.bullet import Bullet
 
-# 画像読み込みヘルパー
+# --- 画像読み込みヘルパー ---
 def load_weapon_image(key):
     stats = config.WEAPON_STATS.get(key)
     if not stats:
@@ -22,7 +22,6 @@ def load_weapon_image(key):
         img = pygame.transform.scale(img, (size, size))
         return img
     except (FileNotFoundError, pygame.error):
-        # 画像がない場合はフォールバック
         color = config.BROWN if key == "stick" else config.YELLOW
         if key == "thunder": color = config.YELLOW
         elif key == "ice": color = config.CYAN
@@ -39,16 +38,22 @@ def create_fallback_surface(size, color):
 # ==========================================
 class SpinningBullet(Bullet):
     def __init__(self, pos, dir, damage, image, spin_speed):
+        # 親クラス(Bullet)の初期化
+        # speedとlifetimeは後で設定するかデフォルトを使う
         super().__init__(pos, dir, damage, image)
         self.orig_image = image
         self.angle = 0
         self.spin_speed = spin_speed
 
     def update(self, dt):
+        # 移動処理 (Bulletのupdate)
         super().update(dt)
+        
+        # 回転処理
         if self.orig_image:
             self.angle = (self.angle + self.spin_speed) % 360
             self.image = pygame.transform.rotate(self.orig_image, self.angle)
+            # 回転後の中心を維持
             self.rect = self.image.get_rect(center=self.rect.center)
 
 # ==========================================
@@ -82,7 +87,6 @@ class BearBomb(pygame.sprite.Sprite):
         for enemy in hits:
             enemy.take_damage(self.damage)
         
-        # print("Bear Bomb Exploded!") 
         self.kill()
 
 # ==========================================
@@ -106,7 +110,7 @@ class Weapon:
         print(f"{self.name} Leveled Up! -> Lv.{self.level}")
 
 # ==========================================
-# Tier 0: 木の棒
+# Tier 0: 木の棒 (WoodenStick)
 # ==========================================
 class WoodenStick(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -126,11 +130,16 @@ class WoodenStick(Weapon):
             self.last_attack_time = current_time
 
     def shoot(self):
-        mouse_pos = pygame.mouse.get_pos()
-        direction = Vector2(mouse_pos) - self.owner.pos
+        # ★修正: 画面上のマウス位置 - 画面中央(プレイヤー)
+        mouse_pos = Vector2(pygame.mouse.get_pos())
+        screen_center = Vector2(config.SCREEN_WIDTH // 2, config.SCREEN_HEIGHT // 2)
+        
+        direction = mouse_pos - screen_center
+        
         if direction.length() > 0:
             direction = direction.normalize()
             
+            # 弾の生成 (位置はプレイヤーのワールド座標)
             bullet = SpinningBullet(
                 self.owner.pos, 
                 direction, 
@@ -139,6 +148,8 @@ class WoodenStick(Weapon):
                 self.spin_speed
             )
             bullet.speed = self.bullet_speed
+            bullet.lifetime = 1500 # 1.5秒で消える
+            
             self.all_sprites.add(bullet)
             self.bullets_group.add(bullet)
             
@@ -148,7 +159,7 @@ class WoodenStick(Weapon):
         self.damage += 2
 
 # ==========================================
-# Tier 1: えんぴつ
+# Tier 1: えんぴつ (PencilGun)
 # ==========================================
 class PencilGun(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -167,14 +178,20 @@ class PencilGun(Weapon):
             self.last_attack_time = current_time
 
     def shoot(self):
-        mouse_pos = pygame.mouse.get_pos()
-        direction = Vector2(mouse_pos) - self.owner.pos
+        # ★修正: 画面上のマウス位置 - 画面中央
+        mouse_pos = Vector2(pygame.mouse.get_pos())
+        screen_center = Vector2(config.SCREEN_WIDTH // 2, config.SCREEN_HEIGHT // 2)
+        
+        direction = mouse_pos - screen_center
+        
         if direction.length() > 0:
             direction = direction.normalize()
             
             bullet = Bullet(self.owner.pos, direction, self.damage, self.bullet_image)
             bullet.speed = self.bullet_speed
+            bullet.lifetime = 2000 # 2秒
             
+            # 進行方向へ画像を回転
             angle = math.degrees(math.atan2(-direction.y, direction.x)) - 90
             bullet.image = pygame.transform.rotate(bullet.image, angle)
             bullet.rect = bullet.image.get_rect(center=bullet.rect.center)
@@ -188,7 +205,7 @@ class PencilGun(Weapon):
         self.damage += int(self.damage * 0.2) 
 
 # ==========================================
-# Tier 1: 食パン
+# Tier 1: 食パン (BreadShield)
 # ==========================================
 class BreadShield(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -207,18 +224,31 @@ class BreadShield(Weapon):
             orb_sprite = pygame.sprite.Sprite()
             orb_sprite.image = self.image
             orb_sprite.rect = self.image.get_rect()
+            # 初期位置
             orb_sprite.rect.center = self.owner.pos
             self.all_sprites.add(orb_sprite)
             self.orbs.append(orb_sprite)
 
     def update(self, current_time):
+        # パンはプレイヤーの周りを回る
         self.angle += self.speed
-        cx, cy = self.owner.rect.center
+        cx, cy = self.owner.rect.center # 画面上の位置ではなく、描画時に補正されるRectを使う
+        
+        # プレイヤーのワールド座標を中心に計算
+        wx, wy = self.owner.pos.x, self.owner.pos.y
+        
         for i, orb in enumerate(self.orbs):
             offset = (2 * math.pi / self.orb_count) * i
             current_orb_angle = self.angle + offset
-            orb.rect.centerx = cx + math.cos(current_orb_angle) * self.radius
-            orb.rect.centery = cy + math.sin(current_orb_angle) * self.radius
+            
+            # ワールド座標での位置
+            orb_x = wx + math.cos(current_orb_angle) * self.radius
+            orb_y = wy + math.sin(current_orb_angle) * self.radius
+            
+            # Rectを更新 (描画用)
+            orb.rect.centerx = round(orb_x)
+            orb.rect.centery = round(orb_y)
+            
             hits = pygame.sprite.spritecollide(orb, self.enemy_group, False)
             for enemy in hits:
                 enemy.take_damage(self.damage / 5.0)
@@ -230,7 +260,7 @@ class BreadShield(Weapon):
         self.damage += 2
 
 # ==========================================
-# Tier 1: くまちゃん
+# Tier 1: くまちゃん (BearSmash)
 # ==========================================
 class BearSmash(Weapon):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -254,6 +284,7 @@ class BearSmash(Weapon):
             spawn_x = self.owner.pos.x - offset
         else:
             spawn_x = self.owner.pos.x + offset
+        
         spawn_pos = Vector2(spawn_x, self.owner.pos.y)
         bomb = BearBomb(spawn_pos, self.damage, self.enemy_group, self.image, self.fuse_time, self.blast_radius)
         self.all_sprites.add(bomb)
@@ -264,7 +295,7 @@ class BearSmash(Weapon):
         self.damage += 10
 
 # ==========================================
-# Tier 2: 雷の杖 (ThunderStaff)
+# Tier 2: 上位武器
 # ==========================================
 class ThunderStaff(PencilGun):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
@@ -274,9 +305,6 @@ class ThunderStaff(PencilGun):
         self.damage = stats["damage"]
         self.bullet_image = load_weapon_image("thunder")
 
-# ==========================================
-# Tier 2: アイス (IceCream)
-# ==========================================
 class IceCream(PencilGun):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
         super().__init__(owner, enemy_group, all_sprites, bullets_group)
@@ -285,9 +313,6 @@ class IceCream(PencilGun):
         self.damage = stats["damage"]
         self.bullet_image = load_weapon_image("ice")
 
-# ==========================================
-# Tier 2: ドリル (GigaDrill)
-# ==========================================
 class GigaDrill(PencilGun):
     def __init__(self, owner, enemy_group, all_sprites, bullets_group):
         super().__init__(owner, enemy_group, all_sprites, bullets_group)

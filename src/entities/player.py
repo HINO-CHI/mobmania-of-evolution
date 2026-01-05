@@ -81,8 +81,8 @@ class Player(pygame.sprite.Sprite):
             direction = direction.normalize()
             
         self.pos += direction * self.speed * dt
-        self.pos.x = max(0, min(self.pos.x, config.SCREEN_WIDTH))
-        self.pos.y = max(0, min(self.pos.y, config.SCREEN_HEIGHT))
+        # self.pos.x = max(0, min(self.pos.x, config.SCREEN_WIDTH))
+        # self.pos.y = max(0, min(self.pos.y, config.SCREEN_HEIGHT))
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
     def add_weapon(self, weapon_class):

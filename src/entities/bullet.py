@@ -1,38 +1,34 @@
 # src/entities/bullet.py
 import pygame
-import config
+from pygame.math import Vector2
 
 class Bullet(pygame.sprite.Sprite):
-    # ★変更: image 引数を追加 (Noneならデフォルトの黄色い丸)
-    def __init__(self, pos, dir, damage, image=None):
+    def __init__(self, pos, direction, damage, image, speed=None, lifetime=1500):
         super().__init__()
-        self.damage = damage
-        self.pos = pygame.math.Vector2(pos)
-        self.dir = dir
-        self.speed = 600  # 弾速
-        self.spawn_time = pygame.time.get_ticks()
-        self.lifetime = 2000 # 2秒で消える
-
-        if image:
-            # 画像がある場合
-            self.image = image
-            # 進行方向に回転させるとより良いですが、まずはそのまま表示
-        else:
-            # 画像がない場合（デフォルト）
-            self.image = pygame.Surface((10, 10))
-            self.image.fill(config.YELLOW)
         
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
+        self.image = image
+        self.rect = self.image.get_rect(center=pos)
+        self.pos = Vector2(pos)
+        
+        self.direction = direction
+        self.damage = damage
+        self.speed = speed if speed else 600
+        
+        # 寿命管理 (ミリ秒)
+        self.spawn_time = pygame.time.get_ticks()
+        self.lifetime = lifetime 
 
     def update(self, dt):
-        self.pos += self.dir * self.speed * dt
-        self.rect.center = (round(self.pos.x), round(self.pos.y))
-
-        if pygame.time.get_ticks() - self.spawn_time > self.lifetime:
-            self.kill()
+        # 移動処理
+        # ★修正: dt はすでに「秒」なので、そのまま掛ける
+        if self.direction.length() > 0:
+            move_amount = self.direction * self.speed * dt
+            self.pos += move_amount
         
-        # 画面外に出たら消す
-        if (self.rect.right < 0 or self.rect.left > config.SCREEN_WIDTH or
-            self.rect.bottom < 0 or self.rect.top > config.SCREEN_HEIGHT):
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        
+        # 寿命チェック
+        # spawn_time はミリ秒なので、現在時刻(ミリ秒)と比較
+        current_time = pygame.time.get_ticks()
+        if current_time - self.spawn_time > self.lifetime:
             self.kill()
