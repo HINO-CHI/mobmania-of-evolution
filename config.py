@@ -219,3 +219,13 @@ GAME_OVER_OPTION_COLOR = (255, 255, 255) # 白
 GAME_OVER_SELECT_COLOR = (255, 255, 0)   # 黄色（選択時）
 GAME_OVER_FONT_SIZE_TITLE = 100
 GAME_OVER_FONT_SIZE_OPTION = 36
+
+# ==========================================
+# ドロップアイテム設定
+# ==========================================
+DROP_SETTINGS = {
+    "exp_size": (50, 50),       # 経験値ジェムの表示サイズ
+    "healing_size": (70, 70),   # 回復アイテムの表示サイズ
+    "magnet_range": 150,        # プレイヤーが近づいた時の吸い寄せ開始距離
+    "acceleration": 900         # 吸い寄せ時の加速度
+}
