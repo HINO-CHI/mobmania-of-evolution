@@ -1,7 +1,10 @@
+# main.py
 import pygame
 import config
 from src.scenes.title_screen import TitleScreen
 from src.scenes.game_play import GameplayScreen
+# ★追加: ステージ選択画面をインポート
+from src.scenes.stage_select import StageSelectScreen
 # ジョイスティック（コントローラー）用
 from pygame.locals import *
 
@@ -18,18 +21,18 @@ def main():
     config.SCREEN_WIDTH = monitor_width
     config.SCREEN_HEIGHT = monitor_height
     
-    # ★追加: 倍率の計算 (現在の幅 / 基準の幅)
-    # 例: 1920pxのモニターなら 1920 / 800 = 2.4倍 になる
-    config.GLOBAL_SCALE = monitor_width / config.BASE_SCREEN_WIDTH
+    # 倍率の計算 (現在の幅 / 基準の幅)
+    # config.py に BASE_SCREEN_WIDTH が定義されている前提です
+    if hasattr(config, 'BASE_SCREEN_WIDTH'):
+        config.GLOBAL_SCALE = monitor_width / config.BASE_SCREEN_WIDTH
+    else:
+        config.GLOBAL_SCALE = 1.0
     
     print(f"Screen: {monitor_width}x{monitor_height}, Scale: {config.GLOBAL_SCALE:.2f}")
 
     screen = pygame.display.set_mode((monitor_width, monitor_height), pygame.FULLSCREEN)
     pygame.display.set_caption(config.CAPTION)
     # ----------------------------------------
-    
-    # ... (以下変更なし) ...
-    # -----------------------------
 
     clock = pygame.time.Clock()
 
@@ -45,6 +48,7 @@ def main():
     # シーン管理
     scenes = {
         "TITLE": TitleScreen(),
+        "STAGE_SELECT": StageSelectScreen(), # ★追加
         "GAMEPLAY": None 
     }
     current_scene_key = "TITLE"
@@ -61,12 +65,28 @@ def main():
             
             # シーンごとのイベント処理
             action = current_scene.handle_events(events)
+            
             if action:
+                # パターンA: タイトルでスタート -> ステージ選択へ
                 if action == "START_GAME":
-                    scenes["GAMEPLAY"] = GameplayScreen("grass")
+                    print("Transition: Title -> Stage Select")
+                    current_scene_key = "STAGE_SELECT"
+                    current_scene = scenes["STAGE_SELECT"]
+                
+                # パターンB: ステージ選択で決定 -> ゲーム開始
+                # ステージ選択画面からは ("GAMEPLAY", "stage_key") というタプルが返ってきます
+                elif isinstance(action, tuple) and action[0] == "GAMEPLAY":
+                    stage_key = action[1]
+                    print(f"Transition: Stage Select -> Gameplay ({stage_key})")
+                    
+                    # 選ばれたステージでゲーム画面を初期化
+                    scenes["GAMEPLAY"] = GameplayScreen(stage_key)
                     current_scene_key = "GAMEPLAY"
                     current_scene = scenes["GAMEPLAY"]
+
+                # パターンC: タイトルへ戻る
                 elif action == "TITLE":
+                    print("Transition: -> Title")
                     current_scene_key = "TITLE"
                     current_scene = scenes["TITLE"]
 
