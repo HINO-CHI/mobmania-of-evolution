@@ -2,17 +2,16 @@ import os
 
 # --- 基本設定 ---
 CAPTION = "Mobmania of Evolution"
-# 開発時の基準サイズ (このサイズで作ったバランスを基準にする)
 BASE_SCREEN_WIDTH = 800 
 
 # 実行時に書き換わる変数
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-GLOBAL_SCALE = 1.0  # <--- 追加: 画面サイズに合わせた拡大倍率
+GLOBAL_SCALE = 1.0
 
 FPS = 60
 
-# --- 色の定義 (R, G, B) ---
+# --- 色の定義 ---
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -25,55 +24,42 @@ ORANGE = (255, 165, 0)
 BG_COLOR = (30, 30, 30)
 
 # Mobmania風カラーパレット
-UI_BG_COLOR = (245, 222, 179)      # 薄いベージュ (背景)
-UI_BORDER_COLOR = (255, 255, 255)  # 白 (枠線)
-UI_TEXT_COLOR = (60, 40, 40)       # 濃い焦げ茶 (文字色)
-UI_HIGHLIGHT_COLOR = (255, 240, 200) # 選択中の明るい色
-UI_RIBBON_COLOR = (255, 140, 0)    # オレンジ (リボン)
+UI_BG_COLOR = (245, 222, 179)
+UI_BORDER_COLOR = (255, 255, 255)
+UI_TEXT_COLOR = (60, 40, 40)
+UI_HIGHLIGHT_COLOR = (255, 240, 200)
+UI_RIBBON_COLOR = (255, 140, 0)
 
 # ==========================================
-# UI SETTINGS (Mobmania Style)
+# UI SETTINGS
 # ==========================================
-
-# フォント
 FONT_PATH = "assets/fonts/pixel_font.ttf"
 
-# 色設定
 UI_COLORS = {
-    "bg": (245, 222, 179),           # ベージュ背景
-    "border": (255, 255, 255),       # 白枠
-    "ribbon": (255, 140, 0),         # オレンジリボン
+    "bg": (245, 222, 179),
+    "border": (255, 255, 255),
+    "ribbon": (255, 140, 0),
     "ribbon_border": (255, 255, 255),
     "text_title": (255, 255, 255),
-    "text_body": (60, 40, 40),       # 焦げ茶
+    "text_body": (60, 40, 40),
     "text_detail": (100, 80, 80),
     "item_bg_normal": (235, 215, 180),
     "item_bg_hover": (255, 245, 220),
     "item_border_normal": (200, 180, 150),
-    "item_border_hover": (255, 0, 0), # 赤
+    "item_border_hover": (255, 0, 0),
 }
 
-# レイアウト設定 (ここをいじれば大きさ変え放題！)
 LEVELUP_SCREEN = {
-    # メインパネル
-    "panel_width": 1000,    # 大きく！
+    "panel_width": 1000,
     "panel_height": 750,
     "border_thickness": 8,
-    
-    # リボン
     "ribbon_width": 600,
     "ribbon_height": 80,
-    "ribbon_offset_y": 40,  # パネルの上端からどれだけ飛び出させるか
-    
-    # リスト配置
-    "list_start_y": 100,    # パネル上端からの開始位置
-    "item_height": 160,     # 各カードの高さ
-    "item_gap": 25,         # カード間の隙間
-    
-    # アイコン・装飾
-    "icon_size": 100,       # アイコン画像サイズ
-    
-    # フォントサイズ
+    "ribbon_offset_y": 40,
+    "list_start_y": 100,
+    "item_height": 160,
+    "item_gap": 25,
+    "icon_size": 100,
     "font_size_title": 56,
     "font_size_name": 36,
     "font_size_detail": 24
@@ -83,10 +69,8 @@ LEVELUP_SCREEN = {
 PLAYER_SIZE = 80
 PLAYER_SPEED = 300
 PLAYER_COLOR = RED
-ATTACK_COOLDOWN = 500  # ミリ秒
-PLAYER_DAMAGE = 10     # 基礎攻撃力
-
-# ★追加: プレイヤー画像の設定
+ATTACK_COOLDOWN = 500
+PLAYER_DAMAGE = 10
 PLAYER_IMAGE_DIR = "assets/images/player"
 PLAYER_IMAGE = "player_normal.png"
 
@@ -94,178 +78,57 @@ PLAYER_IMAGE = "player_normal.png"
 BULLET_SPEED = 600
 BULLET_SIZE = 10
 BULLET_COLOR = YELLOW
-BULLET_LIFETIME = 1000  # ミリ秒
+BULLET_LIFETIME = 1000
 
 # --- モブ設定 ---
 MOB_IMAGE_DIR = "assets/images/mobs"
-
-# モブの種類ごとのステータス設定
-# size: 画像の大きさ (ピクセル)
-# min_speed / max_speed: 進化における速度の限界値
 MOB_BASE_STATS = {
-    0: {
-        "name": "Tree",
-        "image": "mob_tree.png",
-        "hp": 25,
-        "speed": 50,
-        "min_speed": 30,
-        "max_speed": 100,   # 木はあまり速くなれない
-        "size": 70,        # 少し大きめ
-        "attack": 10,
-        "defense_rate": 1.2,
-        "attack_type": "contact"
-    },
-    1: {
-        "name": "Kinoko",
-        "image": "mob_kinoko.png",
-        "hp": 10,
-        "speed": 70,
-        "min_speed": 30,
-        "max_speed": 140,
-        "size": 50,        # 標準より少し小さい
-        "attack": 5,
-        "defense_rate": 1.0,
-        "attack_type": "contact"
-    },
-    2: {
-        "name": "Golem",
-        "image": "mob_golem.png",
-        "hp": 100,
-        "speed": 10,
-        "min_speed": 10,
-        "max_speed": 40,  # 重いので限界がある
-        "size": 170,        # かなりデカい！
-        "attack": 25,
-        "defense_rate": 2.0,
-        "attack_type": "contact"
-    },
-    3: {
-        "name": "Bluebird",
-        "image": "mob_bluebird.png",
-        "hp": 8,
-        "speed": 220,
-        "min_speed": 100,
-        "max_speed": 400,  # 超高速になれる可能性
-        "size": 50,        # 小さい（当てにくい）
-        "attack": 12,
-        "defense_rate": 0.8,
-        "attack_type": "contact"
-    },
-    4: {
-        "name": "Snail",
-        "image": "mob_snail.png",
-        "hp": 15,
-        "speed": 30,
-        "min_speed": 10,
-        "max_speed": 60,   # とても遅い
-        "size": 40,        # 小さい
-        "attack": 8,
-        "defense_rate": 3.0,
-        "attack_type": "contact"
-    }
+    0: {"name": "Tree", "image": "mob_tree.png", "hp": 25, "speed": 50, "min_speed": 30, "max_speed": 100, "size": 70, "attack": 10, "defense_rate": 1.2, "attack_type": "contact"},
+    1: {"name": "Kinoko", "image": "mob_kinoko.png", "hp": 10, "speed": 70, "min_speed": 30, "max_speed": 140, "size": 50, "attack": 5, "defense_rate": 1.0, "attack_type": "contact"},
+    2: {"name": "Golem", "image": "mob_golem.png", "hp": 100, "speed": 10, "min_speed": 10, "max_speed": 40, "size": 170, "attack": 25, "defense_rate": 2.0, "attack_type": "contact"},
+    3: {"name": "Bluebird", "image": "mob_bluebird.png", "hp": 8, "speed": 220, "min_speed": 100, "max_speed": 400, "size": 50, "attack": 12, "defense_rate": 0.8, "attack_type": "contact"},
+    4: {"name": "Snail", "image": "mob_snail.png", "hp": 15, "speed": 30, "min_speed": 10, "max_speed": 60, "size": 40, "attack": 8, "defense_rate": 3.0, "attack_type": "contact"}
 }
-# config.py (WEAPON_STATS部分)
 
-# ==========================================
-# WEAPON SETTINGS
-# ==========================================
+# --- 武器設定 ---
 ITEM_IMAGE_DIR = "assets/images/items"
-
-# Tier 1: 初期〜序盤
-# Tier 2: レベル2で解放される武器
 WEAPON_STATS = {
-    # --- Tier 0: 初期装備 ---
-    "stick": {
-        "name": "Wooden Stick",
-        "tier": 0,
-        "image": "items-level0-edge.png",
-        "size": 80, "damage": 5, "cooldown": 600, "speed": 500, "spin_speed": 15
-    },
-
-    # --- Tier 1: レベル1武器 (既存) ---
-    "pencil": {
-        "name": "Magic Pencil",
-        "tier": 1,
-        "image": "items-level1-enpitu.png",
-        "size": 60, "damage": 10, "cooldown": 500, "speed": 600
-    },
-    "bread": {
-        "name": "Guardian Bread",
-        "tier": 1,
-        "image": "items-level1-shokupan.png",
-        "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05
-    },
-    "bear": {
-        "name": "Bear Bomber",
-        "tier": 1,
-        "image": "items-level1-kumanuigurumi.png",
-        "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150
-    },
-
-    # --- Tier 2: レベル2武器 (新規枠組み・画像はまだない) ---
-    "thunder": {
-        "name": "Thunder Staff",
-        "tier": 2,
-        "image": "items-level2-thunder.png", # 後で画像を追加
-        "size": 60, "damage": 15, "cooldown": 800
-    },
-    "ice": {
-        "name": "Ice Cream Cone",
-        "tier": 2,
-        "image": "items-level2-ice.png",
-        "size": 50, "damage": 8, "cooldown": 400
-    },
-    "drill": {
-        "name": "Giga Drill",
-        "tier": 2,
-        "image": "items-level2-drill.png",
-        "size": 70, "damage": 20, "cooldown": 1000
-    }
+    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 5, "cooldown": 600, "speed": 500, "spin_speed": 15},
+    "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items-level1-enpitu.png", "size": 60, "damage": 10, "cooldown": 500, "speed": 600},
+    "bread": {"name": "Guardian Bread", "tier": 1, "image": "items-level1-shokupan.png", "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
+    "bear": {"name": "Bear Bomber", "tier": 1, "image": "items-level1-kumanuigurumi.png", "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
+    "thunder": {"name": "Thunder Staff", "tier": 2, "image": "items-level2-thunder.png", "size": 60, "damage": 15, "cooldown": 800},
+    "ice": {"name": "Ice Cream Cone", "tier": 2, "image": "items-level2-ice.png", "size": 50, "damage": 8, "cooldown": 400},
+    "drill": {"name": "Giga Drill", "tier": 2, "image": "items-level2-drill.png", "size": 70, "damage": 20, "cooldown": 1000}
 }
 
 # ==========================================
-# ステージ設定
-# ==========================================
-STAGE_SETTINGS = {
-    "grass": {
-        "display_name": "Meadow",
-        "desc": "Peaceful training ground.",
-        "difficulty": 1,
-        "bg_color": (34, 139, 34)
-    },
-    "water": {
-        "display_name": "Coast",
-        "desc": "Slippery aquatic zone.",
-        "difficulty": 2,
-        "bg_color": (30, 144, 255)
-    },
-    "volcano": {
-        "display_name": "Inferno",
-        "desc": "Scorching heat awaits.",
-        "difficulty": 3,
-        "bg_color": (139, 0, 0)
-    },
-    "cloud": {
-        "display_name": "Sky High",
-        "desc": "Battle in the clouds.",
-        "difficulty": 4,
-        "bg_color": (200, 200, 255)
-    }
-}
-
-# ==========================================
-# MAP SETTINGS
+# MAP & STAGE SETTINGS
 # ==========================================
 MAP_IMAGE_DIR = "assets/images/maps/stage1"
 
-# ステージごとの背景色や設定
+# config.py (STAGE_SETTINGS部分のみ修正)
+
 STAGE_SETTINGS = {
     "grass": {
         "display_name": "Meadow",
         "desc": "Peaceful training ground.",
         "difficulty": 1,
-        "bg_color": (120, 230, 120), # 明るい緑
-        # 生成に使用するアセットリスト
+        "bg_color": (120, 230, 120),
+        
+        "generation": {
+            # --- 変更点 ---
+            # obstacle_threshold: 0.60 くらいまで下げて「森の範囲」自体は広げます
+            "obstacle_threshold": 0.90,
+            
+            # ★新規: その範囲内で実際に木が生える確率 (0.0 ~ 1.0)
+            # 0.3 (30%) にすれば、森の中でもスカスカになり歩きやすくなります
+            "obstacle_density": 0.20,
+            
+            "decoration_threshold": 0.40,
+            "frequency": 8.0 
+        },
+
         "assets": {
             "obstacles": [
                 "stage1-iwa1.png", "stage1-iwa2.png", "stage1-koiwa.png",
@@ -277,5 +140,55 @@ STAGE_SETTINGS = {
             ]
         }
     },
-    # ... (他のステージ設定はそのまま) ...
+    # ... 他のステージも同様に ...
+
+    "water": {
+        "display_name": "Coast",
+        "desc": "Slippery aquatic zone.",
+        "bg_color": (30, 144, 255),
+        "generation": {"obstacle_threshold": 0.8, "decoration_threshold": 0.5, "frequency": 8.0},
+        "assets": {"obstacles": [], "decorations": []}
+    },
+    "volcano": {
+        "display_name": "Inferno",
+        "desc": "Scorching heat awaits.",
+        "bg_color": (139, 0, 0),
+        "generation": {"obstacle_threshold": 0.7, "decoration_threshold": 0.4, "frequency": 8.0},
+        "assets": {"obstacles": [], "decorations": []}
+    },
+    "cloud": {
+        "display_name": "Sky High",
+        "desc": "Battle in the clouds.",
+        "bg_color": (200, 200, 255),
+        "generation": {"obstacle_threshold": 0.85, "decoration_threshold": 0.6, "frequency": 8.0},
+        "assets": {"obstacles": [], "decorations": []}
+    }
+}
+
+# ==========================================
+# MAP OBJECT DETAILS (大きさ・当たり判定の調整)
+# ==========================================
+# ファイル名ごとに詳細設定を行います。
+# scale: 画像の拡大倍率 (1.0 = 基準サイズ 80px)
+# hitbox_w: 当たり判定の幅 (0.0 ~ 1.0, 1.0で画像と同じ幅)
+# hitbox_h: 当たり判定の高さ (0.0 ~ 1.0)
+# offset_y: 当たり判定の縦位置調整 (プラスで下へ、マイナスで上へ)
+
+MAP_OBJECT_SETTINGS = {
+    # --- 障害物 (木・岩) ---
+    # 木は「根元」だけ判定を持たせるのがコツです
+    "stage1-ki1.png": { "scale": 3.5, "hitbox_w": 0.3, "hitbox_h": 0.5, "offset_y": 10 },
+    "stage1-ki2.png": { "scale": 3.4, "hitbox_w": 0.3, "hitbox_h": 0.5, "offset_y": 15 },
+    "stage1-ki3.png": { "scale": 3.3, "hitbox_w": 0.3, "hitbox_h": 0.8, "offset_y": 10 },
+
+    # 岩は下半分くらいに判定を持たせると自然です
+    "stage1-iwa1.png": { "scale": 2.0, "hitbox_w": 0.5, "hitbox_h": 1.0, "offset_y": 15 },
+    "stage1-iwa2.png": { "scale": 1.9, "hitbox_w": 0.5, "hitbox_h": 1.0, "offset_y": 10 },
+    "stage1-koiwa.png": { "scale": 1.6, "hitbox_w": 0.2, "hitbox_h": 0.2, "offset_y": 5 },
+    
+    # --- 装飾 (草・花) ---
+    # 当たり判定はありませんが、大きさ(scale)は反映されます
+    "stage1-kusa2.png": { "scale": 0.8 },
+    "stage1-kusa3.png": { "scale": 0.9 },
+    "stage1-kusa5.png": { "scale": 1.1 },
 }

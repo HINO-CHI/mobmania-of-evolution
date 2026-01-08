@@ -2,129 +2,170 @@
 import pygame
 import random
 import config
+import os
 from src.entities.obstacle import Obstacle
 
 class MapGenerator:
     def __init__(self, biome_type):
         self.biome = biome_type
-        # マップサイズ (広すぎると生成に時間がかかるので 3000px 程度に)
-        self.map_width = 3000
-        self.map_height = 3000
-        # タイルサイズ
         self.tile_size = 60
+        self.chunk_tile_size = 10
+        self.chunk_pixel_size = self.chunk_tile_size * self.tile_size
         
-        self.cols = self.map_width // self.tile_size
-        self.rows = self.map_height // self.tile_size
+        self.loaded_chunks = {}
         
-        self.obstacles_group = pygame.sprite.Group()
-        self.decoration_group = pygame.sprite.Group()
+        self.obstacles_group = None
+        self.decoration_group = None
+        self.loaded_obstacles = []
+        self.loaded_decorations = []
         
-        # グリッド管理用
-        self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+        # 設定値保持用
+        self.obs_threshold = 0.75
+        self.obs_density = 1.0     # ★追加: 密度
+        self.deco_threshold = 0.40
 
-    def generate(self):
-        print(f"Generating map for biome: {self.biome}...")
-        self.obstacles_group.empty()
-        self.decoration_group.empty()
-        self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+    def setup(self, obstacles_group, decoration_group):
+        self.obstacles_group = obstacles_group
+        self.decoration_group = decoration_group
         
         settings = config.STAGE_SETTINGS.get(self.biome, {})
+        gen_settings = settings.get("generation", {})
+        
+        # Config読み込み
+        self.obs_threshold = gen_settings.get("obstacle_threshold", 0.75)
+        self.obs_density = gen_settings.get("obstacle_density", 0.3) # ★デフォルト0.3
+        self.deco_threshold = gen_settings.get("decoration_threshold", 0.40)
+        
         assets = settings.get("assets", {})
-        obs_assets = assets.get("obstacles", [])
-        deco_assets = assets.get("decorations", [])
+        self.loaded_obstacles = self._preload_images(assets.get("obstacles", []), is_solid=True)
+        self.loaded_decorations = self._preload_images(assets.get("decorations", []), is_solid=False)
 
-        # ================================
-        # 1. 障害物 (木・岩) の配置
-        # ================================
-        # 中央（スタート地点）周辺を避ける
-        center_c, center_r = self.cols // 2, self.rows // 2
+        # フォールバック
+        if not self.loaded_obstacles:
+            s = pygame.Surface((60, 60))
+            s.fill((139, 69, 19))
+            self.loaded_obstacles.append((s, {}))
+
+        if not self.loaded_decorations:
+            s = pygame.Surface((60, 60))
+            s.fill((50, 205, 50))
+            s.set_alpha(150)
+            self.loaded_decorations.append((s, {}))
+
+    def update(self, player_pos):
+        if self.obstacles_group is None or self.decoration_group is None:
+            return
+
+        pcx = int(player_pos.x // self.chunk_pixel_size)
+        pcy = int(player_pos.y // self.chunk_pixel_size)
+
+        visible_chunks = set()
+        range_radius = 2
         
-        # 全体で50個ほど配置
-        for _ in range(50):
-            c = random.randint(0, self.cols - 1)
-            r = random.randint(0, self.rows - 1)
-            # 中央5マス以内は置かない
-            if abs(c - center_c) < 5 and abs(r - center_r) < 5:
-                continue
+        for dy in range(-range_radius, range_radius + 1):
+            for dx in range(-range_radius, range_radius + 1):
+                chunk_coord = (pcx + dx, pcy + dy)
+                visible_chunks.add(chunk_coord)
+                
+                if chunk_coord not in self.loaded_chunks:
+                    self._generate_chunk(chunk_coord)
+
+        for chunk_coord in list(self.loaded_chunks.keys()):
+            if chunk_coord not in visible_chunks:
+                self._unload_chunk(chunk_coord)
+
+    def _preload_images(self, names, is_solid):
+        loaded = []
+        base_size = 80
+        for name in names:
+            file_name = name
+            if not name.lower().endswith('.png'): file_name += ".png"
+            path = os.path.join(config.MAP_IMAGE_DIR, file_name)
+            props = config.MAP_OBJECT_SETTINGS.get(file_name, {})
+            scale_factor = props.get("scale", 1.0)
             
-            if self.grid[r][c] is None and obs_assets:
-                self.grid[r][c] = {"type": "obstacle", "name": random.choice(obs_assets)}
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                target_w = int(base_size * scale_factor)
+                aspect = img.get_height() / img.get_width()
+                target_h = int(target_w * aspect)
+                img = pygame.transform.scale(img, (target_w, target_h))
+                loaded.append((img, props))
+            except:
+                continue
+        return loaded
 
-        # ================================
-        # 2. 草の生成 (セル・オートマトン)
-        # ================================
-        if self.biome == "grass" and deco_assets:
-            self._generate_grass_automata(deco_assets)
+    def _unload_chunk(self, chunk_coord):
+        sprites = self.loaded_chunks.pop(chunk_coord)
+        for sprite in sprites:
+            sprite.kill()
 
-        # ================================
-        # 3. スプライト化
-        # ================================
-        for r in range(self.rows):
-            for c in range(self.cols):
-                cell = self.grid[r][c]
-                if cell:
-                    x = c * self.tile_size + self.tile_size // 2 + random.randint(-10, 10)
-                    y = r * self.tile_size + self.tile_size // 2 + random.randint(-10, 10)
-                    
-                    if cell["type"] == "obstacle":
-                        s = Obstacle((x, y), cell["name"], is_solid=True)
+    def _generate_chunk(self, chunk_coord):
+        cx, cy = chunk_coord
+        new_sprites = []
+        
+        chunk_seed = (cx * 73856093) ^ (cy * 19349663)
+        random.seed(chunk_seed)
+
+        noise_map = self._generate_noise_grid(self.chunk_tile_size)
+
+        for r in range(self.chunk_tile_size):
+            for c in range(self.chunk_tile_size):
+                val = noise_map[r][c]
+                
+                world_x = (cx * self.chunk_pixel_size) + (c * self.tile_size) + self.tile_size // 2
+                world_y = (cy * self.chunk_pixel_size) + (r * self.tile_size) + self.tile_size // 2
+                
+                world_x += random.randint(-15, 15)
+                world_y += random.randint(-15, 15)
+
+                # --- 配置ロジック (密度チェックを追加) ---
+                
+                # 障害物: ノイズ条件クリア AND 確率抽選クリア
+                # これにより、森エリアの中でも「まばら」に配置される
+                if val > self.obs_threshold:
+                    # ★ここが重要: density (0.3など) より小さい乱数が出た時だけ置く
+                    if random.random() < self.obs_density:
+                        data = random.choice(self.loaded_obstacles)
+                        img, props = data
+                        s = Obstacle((world_x, world_y), img, is_solid=True, props=props)
                         self.obstacles_group.add(s)
-                    elif cell["type"] == "grass":
-                        s = Obstacle((x, y), cell["name"], is_solid=False)
-                        self.decoration_group.add(s)
-        
-        print("Map generation complete.")
-        return self.obstacles_group, self.decoration_group
+                        new_sprites.append(s)
+                
+                # 装飾 (草)
+                elif val > self.deco_threshold:
+                    normalized = (val - self.deco_threshold) / (self.obs_threshold - self.deco_threshold)
+                    idx = int(normalized * len(self.loaded_decorations))
+                    idx = min(idx, len(self.loaded_decorations) - 1)
+                    idx = max(0, idx)
 
-    def _generate_grass_automata(self, deco_assets):
-        """草の繁殖ロジック"""
-        base_grass = deco_assets[0] if deco_assets else "stage1-kusa2.png"
-        
-        # Phase 1: ランダムな種まき (確率 0.1)
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.grid[r][c] is None:
-                    if random.random() < 0.1:
-                        self.grid[r][c] = {"type": "grass", "name": base_grass}
-
-        # Phase 2: 繁殖 (確率 0.1 + 隣接数 * 0.1)
-        # コピーを作成して判定
-        current_grid = [row[:] for row in self.grid]
-        
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if current_grid[r][c] is None:
-                    neighbors = self._count_neighbors(current_grid, c, r)
-                    if neighbors > 0:
-                        prob = 0.1 + (neighbors * 0.1)
-                        if random.random() < prob:
-                            self.grid[r][c] = {"type": "grass", "name": base_grass}
-
-        # Phase 3: 成長 (密集度で種類変更)
-        # 最終結果を参照して書き換え
-        final_ref = [row[:] for row in self.grid]
-        for r in range(self.rows):
-            for c in range(self.cols):
-                cell = final_ref[r][c]
-                if cell and cell["type"] == "grass":
-                    neighbors = self._count_neighbors(final_ref, c, r)
+                    if random.random() < 0.3:
+                        data = random.choice(self.loaded_decorations)
+                    else:
+                        data = self.loaded_decorations[idx]
                     
-                    # 密集度が高いなら豪華な草へ
-                    if neighbors >= 5 and len(deco_assets) > 1:
-                        # リストの後ろの方（kusa3, kusa5など）からランダム
-                        new_name = random.choice(deco_assets[1:])
-                        self.grid[r][c]["name"] = new_name
+                    img, props = data
+                    s = Obstacle((world_x, world_y), img, is_solid=False, props=props)
+                    self.decoration_group.add(s)
+                    new_sprites.append(s)
 
-    def _count_neighbors(self, grid, c, r):
-        count = 0
-        for dy in [-1, 0, 1]:
-            for dx in [-1, 0, 1]:
-                if dx == 0 and dy == 0: continue
-                nc, nr = c + dx, r + dy
-                if 0 <= nc < self.cols and 0 <= nr < self.rows:
-                    cell = grid[nr][nc]
-                    if cell and cell["type"] == "grass":
-                        count += 1
-        return count
-    
-    # setupやupdateは不要になったので削除
+        self.loaded_chunks[chunk_coord] = new_sprites
+
+    def _generate_noise_grid(self, size):
+        grid = []
+        c1 = random.random()
+        c2 = random.random()
+        c3 = random.random()
+        c4 = random.random()
+        for y in range(size):
+            row = []
+            for x in range(size):
+                fx = x / size
+                fy = y / size
+                top = c1 * (1 - fx) + c2 * fx
+                bottom = c3 * (1 - fx) + c4 * fx
+                val = top * (1 - fy) + bottom * fy
+                val += random.uniform(-0.1, 0.1)
+                row.append(val)
+            grid.append(row)
+        return grid

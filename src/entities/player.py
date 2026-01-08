@@ -3,7 +3,6 @@ import pygame
 import os
 from pygame.math import Vector2
 import config
-# 新しい武器クラスをインポート
 from src.entities.weapons import PencilGun, BreadShield, BearSmash, WoodenStick
 
 class Player(pygame.sprite.Sprite):
@@ -37,23 +36,26 @@ class Player(pygame.sprite.Sprite):
         self.pos = Vector2(start_pos)
         self.speed = config.PLAYER_SPEED
         
-        # --- 武器管理システム用の変数をセット ---
-        # ★重要: ここでセットしてからでないと、add_weaponは使えません
+        # ★修正ポイント: Hitbox（当たり判定）の定義
+        # rect.inflate(x, y) でサイズを変更します（マイナス値で縮小）
+        # 幅を半分(-0.5)、高さを半分以下(-0.6)にして「足元判定」にします
+        self.hitbox = self.rect.inflate(-self.rect.width * 0.5, -self.rect.height * 0.6)
+        
+        # --- 武器管理システム ---
         self.all_sprites = all_sprites
         self.bullets_group = bullets_group
         self.enemy_group = enemy_group 
         
         self.weapons = []
         
-        # --- 初期装備の設定 ---
-        # ★修正: 変数セット後に実行するように配置
+        # 初期装備
         print("Initializing Player Weapon: WoodenStick...")
         self.add_weapon(WoodenStick)
 
     def update(self, dt):
         self.move(dt)
         
-        # 全ての武器を更新
+        # 武器更新
         current_time = pygame.time.get_ticks()
         for weapon in self.weapons:
             weapon.update(current_time)
@@ -81,18 +83,20 @@ class Player(pygame.sprite.Sprite):
             direction = direction.normalize()
             
         self.pos += direction * self.speed * dt
-        # self.pos.x = max(0, min(self.pos.x, config.SCREEN_WIDTH))
-        # self.pos.y = max(0, min(self.pos.y, config.SCREEN_HEIGHT))
-        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        
+        # ★修正ポイント: Hitboxを中心に移動させる
+        # まずHitboxを新しい位置へ動かす
+        self.hitbox.center = (round(self.pos.x), round(self.pos.y))
+        
+        # その後、描画用のrectをHitboxに合わせる
+        self.rect.center = self.hitbox.center
 
     def add_weapon(self, weapon_class):
-        # 既に持っている武器ならレベルアップ、なければ新規追加
         for weapon in self.weapons:
             if isinstance(weapon, weapon_class):
                 weapon.upgrade()
                 return
         
-        # ここで self.enemy_group などを使うため、__init__内での呼び出し順序が重要
         new_weapon = weapon_class(self, self.enemy_group, self.all_sprites, self.bullets_group)
         self.weapons.append(new_weapon)
         print(f"New Weapon Added: {weapon_class.__name__}")
