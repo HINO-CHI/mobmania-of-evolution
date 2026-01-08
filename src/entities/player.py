@@ -9,7 +9,7 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, start_pos, all_sprites, bullets_group, enemy_group):
         super().__init__()
         
-        # --- 画像読み込み処理 ---
+        # --- 画像読み込み ---
         self.image_left = None
         self.image_right = None
         self.facing_right = True
@@ -36,26 +36,24 @@ class Player(pygame.sprite.Sprite):
         self.pos = Vector2(start_pos)
         self.speed = config.PLAYER_SPEED
         
-        # ★修正ポイント: Hitbox（当たり判定）の定義
-        # rect.inflate(x, y) でサイズを変更します（マイナス値で縮小）
-        # 幅を半分(-0.5)、高さを半分以下(-0.6)にして「足元判定」にします
+        # 当たり判定（足元）
         self.hitbox = self.rect.inflate(-self.rect.width * 0.5, -self.rect.height * 0.6)
         
-        # --- 武器管理システム ---
+        # ★追加: HPステータス
+        self.max_hp = 100
+        self.hp = self.max_hp
+        
+        # 武器管理
         self.all_sprites = all_sprites
         self.bullets_group = bullets_group
         self.enemy_group = enemy_group 
-        
         self.weapons = []
         
-        # 初期装備
         print("Initializing Player Weapon: WoodenStick...")
         self.add_weapon(WoodenStick)
 
     def update(self, dt):
         self.move(dt)
-        
-        # 武器更新
         current_time = pygame.time.get_ticks()
         for weapon in self.weapons:
             weapon.update(current_time)
@@ -83,20 +81,21 @@ class Player(pygame.sprite.Sprite):
             direction = direction.normalize()
             
         self.pos += direction * self.speed * dt
-        
-        # ★修正ポイント: Hitboxを中心に移動させる
-        # まずHitboxを新しい位置へ動かす
         self.hitbox.center = (round(self.pos.x), round(self.pos.y))
-        
-        # その後、描画用のrectをHitboxに合わせる
         self.rect.center = self.hitbox.center
+
+    # ★追加: ダメージを受ける処理
+    def take_damage(self, amount):
+        self.hp -= amount
+        if self.hp < 0:
+            self.hp = 0
+        print(f"Player took damage! HP: {self.hp}/{self.max_hp}")
 
     def add_weapon(self, weapon_class):
         for weapon in self.weapons:
             if isinstance(weapon, weapon_class):
                 weapon.upgrade()
                 return
-        
         new_weapon = weapon_class(self, self.enemy_group, self.all_sprites, self.bullets_group)
         self.weapons.append(new_weapon)
         print(f"New Weapon Added: {weapon_class.__name__}")

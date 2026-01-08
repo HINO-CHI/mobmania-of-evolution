@@ -192,3 +192,30 @@ MAP_OBJECT_SETTINGS = {
     "stage1-kusa3.png": { "scale": 0.9 },
     "stage1-kusa5.png": { "scale": 1.1 },
 }
+
+# ==========================================
+# UI BAR SETTINGS
+# ==========================================
+# HPバー設定
+UI_HP_BAR_WIDTH = 200
+UI_HP_BAR_HEIGHT = 20
+UI_HP_COLOR = (50, 205, 50)       # 緑
+UI_HP_BG_COLOR = (60, 0, 0)       # 暗い赤（ダメージ受けた時の背景）
+UI_HP_BORDER_COLOR = (255, 255, 255)
+
+# 経験値バー設定
+UI_XP_BAR_HEIGHT = 30
+UI_XP_COLOR = (0, 191, 255)       # 水色
+UI_XP_BG_COLOR = (20, 20, 40)     # 暗い青
+
+# config.py (末尾に追加)
+
+# ==========================================
+# GAME OVER SCREEN SETTINGS
+# ==========================================
+GAME_OVER_BG_COLOR = (0, 0, 0)       # 黒背景
+GAME_OVER_TEXT_COLOR = (100, 200, 255) # ネオンっぽい青
+GAME_OVER_OPTION_COLOR = (255, 255, 255) # 白
+GAME_OVER_SELECT_COLOR = (255, 255, 0)   # 黄色（選択時）
+GAME_OVER_FONT_SIZE_TITLE = 100
+GAME_OVER_FONT_SIZE_OPTION = 36
