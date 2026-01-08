@@ -239,10 +239,51 @@ class GameplayScreen:
         return (cx, cy)
 
     def draw(self, screen):
+        # メイン描画（背景、キャラ、敵など）
         self.camera_group.custom_draw(self.player, self.bg_color, self.decorations)
+        
+        # ★追加: キャラクター追従HPバーを描画
+        # UIよりも先に描画することで、メニュー等よりは下になるようにします
+        self.draw_player_health_bar(screen)
+        
+        # UI描画（経験値バー、武器スロットなど）
         self.draw_ui(screen)
+        
         if self.game_state == "LEVEL_UP":
             self.draw_level_up_screen(screen)
+
+    # ★新規追加: プレイヤーの足元にHPバーを表示
+    def draw_player_health_bar(self, screen):
+        # プレイヤーの生存確認
+        if self.player.hp <= 0: return
+
+        # カメラのオフセットを取得してスクリーン座標を計算
+        # ※CameraGroupが self.offset を持っている一般的な実装を想定
+        offset = getattr(self.camera_group, 'offset', pygame.math.Vector2(0, 0))
+        
+        # プレイヤーの中心座標からオフセットを引くとスクリーン上の座標になります
+        screen_center = self.player.rect.center - offset
+        
+        # バーのサイズと位置設定
+        bar_width = 70   # バーの幅
+        bar_height = 10  #バーの高さ
+         
+        # 足元（中心からY方向に少し下）に配置
+        # キャラクターのサイズに合わせて +25 などの数値を調整してください
+        draw_x = screen_center.x - bar_width // 2
+        draw_y = screen_center.y + 45 
+        
+        # HP比率
+        hp_ratio = max(0, self.player.hp / self.player.max_hp)
+        
+        # 描画 (背景 -> 中身 -> 枠)
+        # 背景(黒)
+        pygame.draw.rect(screen, (0, 0, 0), (draw_x, draw_y, bar_width, bar_height))
+        # HP(緑)
+        color = (0, 255, 0) if hp_ratio > 0.3 else (255, 0, 0) # ピンチなら赤
+        pygame.draw.rect(screen, color, (draw_x, draw_y, bar_width * hp_ratio, bar_height))
+        # 枠(白)
+        pygame.draw.rect(screen, (255, 255, 255), (draw_x, draw_y, bar_width, bar_height), 1)
 
     def draw_ui(self, screen):
         # 1. 経験値バー (画面下部)
@@ -262,15 +303,6 @@ class GameplayScreen:
         screen.blit(shadow, (12, text_y + 2))
         screen.blit(main, (10, text_y))
 
-        # 2. HPバー (左上)
-        hp_bar_x = 20
-        hp_bar_y = 20
-        hp_ratio = self.player.hp / self.player.max_hp
-        
-        pygame.draw.rect(screen, config.UI_HP_BG_COLOR, (hp_bar_x, hp_bar_y, config.UI_HP_BAR_WIDTH, config.UI_HP_BAR_HEIGHT))
-        pygame.draw.rect(screen, config.UI_HP_COLOR, (hp_bar_x, hp_bar_y, config.UI_HP_BAR_WIDTH * hp_ratio, config.UI_HP_BAR_HEIGHT))
-        pygame.draw.rect(screen, config.UI_HP_BORDER_COLOR, (hp_bar_x, hp_bar_y, config.UI_HP_BAR_WIDTH, config.UI_HP_BAR_HEIGHT), 2)
-        
         # 3. テキスト
         level_text = self.ui_font_large.render(f"LV {self.level}", True, config.WHITE)
         level_shadow = self.ui_font_large.render(f"LV {self.level}", True, config.BLACK)
@@ -281,9 +313,65 @@ class GameplayScreen:
         
         hp_text = f"{int(self.player.hp)}/{self.player.max_hp}"
         hp_surf = self.ui_font.render(hp_text, True, config.WHITE)
-        hp_text_x = hp_bar_x + (config.UI_HP_BAR_WIDTH - hp_surf.get_width()) // 2
-        hp_text_y = hp_bar_y + (config.UI_HP_BAR_HEIGHT - hp_surf.get_height()) // 2
-        screen.blit(hp_surf, (hp_text_x, hp_text_y))
+
+        # ★追加: 武器スロットの描画
+        self.draw_weapon_slots(screen)
+
+    def draw_weapon_slots(self, screen):
+        # 設定
+        icon_size = 60       # アイコンの大きさ
+        padding = 4          # アイコン同士の間隔
+        start_x = 0         # 左端の開始位置 (HPバーと同じX座標)
+        start_y = 0         # 上端の開始位置 (HPバーの下)
+        
+        # プレイヤーが weapon リストを持っている前提
+        # もし player.weapons が存在しない場合はエラー回避のため空リストとする
+        weapons = getattr(self.player, "weapons", [])
+
+        for i, weapon in enumerate(weapons):
+            x = start_x + (icon_size + padding) * i
+            y = start_y
+            
+            # 1. 背景ボックス（黒の半透明枠）
+            slot_rect = pygame.Rect(x, y, icon_size, icon_size)
+            s = pygame.Surface((icon_size, icon_size), pygame.SRCALPHA)
+            s.fill((0, 0, 0, 128)) # 半透明の黒
+            screen.blit(s, (x, y))
+            
+            # 枠線
+            pygame.draw.rect(screen, (200, 200, 200), slot_rect, 1)
+
+            # 2. 武器アイコンの描画
+            # 武器クラスが image 属性を持っているか、もしくはクラス名から画像をロードする
+            # ここでは安全のため try-except や属性チェックを行います
+            try:
+                img = None
+                # パターンA: 武器インスタンス自体が image を持っている場合
+                if hasattr(weapon, "image") and weapon.image:
+                    img = weapon.image
+                # パターンB: main.py で使っている load_weapon_image 関数を使う場合（要import）
+                # ※ここでは簡易的に「名前の頭文字」を表示するフォールバックを入れます
+                
+                if img:
+                    # アイコンサイズに合わせて縮小
+                    img = pygame.transform.scale(img, (icon_size - 4, icon_size - 4))
+                    screen.blit(img, (x + 2, y + 2))
+                else:
+                    # 画像がない場合は武器名の頭文字を表示
+                    name = getattr(weapon, "name", "?")
+                    text_surf = self.ui_font_bold.render(name[:1], True, (255, 255, 255))
+                    text_rect = text_surf.get_rect(center=(x + icon_size//2, y + icon_size//2))
+                    screen.blit(text_surf, text_rect)
+
+            except Exception as e:
+                print(f"Icon draw error: {e}")
+
+            # 3. レベル表示（右下に小さく）
+            lvl = getattr(weapon, "level", 1)
+            lvl_surf = self.ui_font.render(str(lvl), True, (255, 255, 0)) # 黄色文字
+            # 少し小さくスケールしても良い
+            lvl_rect = lvl_surf.get_rect(bottomright=(x + icon_size - 2, y + icon_size - 2))
+            screen.blit(lvl_surf, lvl_rect)
 
     def draw_level_up_screen(self, screen):
         overlay = pygame.Surface((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
