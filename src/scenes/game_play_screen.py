@@ -99,7 +99,14 @@ class GameplayScreen:
     def update(self, dt):
         if self.game_state == "LEVEL_UP": return
 
-        # ★追加: 時間経過によるボス出現チェック
+        # ★追加: 10分経過チェック (10分 * 60秒 * 1000ミリ秒)
+        elapsed_ms = pygame.time.get_ticks() - self.start_time
+        if elapsed_ms >= 10 * 60 * 1000:
+            print("Time Limit Reached! Game Over.")
+            self.game_state = "GAME_OVER"
+            return "GAME_OVER"
+
+        # ボス出現チェック
         self.check_boss_spawn()
 
         self.map_gen.update(self.player.pos)
@@ -107,9 +114,11 @@ class GameplayScreen:
         self.spawn_enemies()
         
         self.camera_group.update(dt)
+
+        # アイテム更新
         self.items_group.update(dt, self.player.rect.center)
 
-        # アイテム回収
+        # アイテム回収判定
         hits_items = pygame.sprite.spritecollide(self.player, self.items_group, True, collided=collide_hit_rect)
         for item in hits_items:
             if isinstance(item, HealingItem):
@@ -122,7 +131,7 @@ class GameplayScreen:
                 self.current_exp += item.value
                 self.check_level_up()
         
-        # 障害物
+        # 障害物判定
         hits_obstacle = pygame.sprite.spritecollide(self.player, self.obstacles, False, collided=collide_hit_rect)
         if hits_obstacle:
             for obs in hits_obstacle:
@@ -150,17 +159,17 @@ class GameplayScreen:
         hits_player = pygame.sprite.spritecollide(self.player, self.enemies_group, False, collided=collide_hit_rect)
         if hits_player:
             if current_time - self.last_damage_time > 500:
-                damage = 10
-                # ボスならダメージ増やすなどの調整も可能
+                damage = 10 
                 self.player.take_damage(damage)
                 self.last_damage_time = current_time
                 
                 dmg_pos = (self.player.rect.centerx + random.randint(-10, 10), self.player.rect.top)
                 dmg_text = FloatingText(dmg_pos, f"-{damage}", (255, 0, 0))
                 self.camera_group.add(dmg_text)
-                
+
+                text_pos = (self.player.rect.centerx, self.player.rect.top - 40)
                 phrase = random.choice(AGGRO_PHRASES)
-                floating_text = FloatingText((self.player.rect.centerx, self.player.rect.top - 40), phrase)
+                floating_text = FloatingText(text_pos, phrase)
                 self.camera_group.add(floating_text)
 
                 if self.player.hp <= 0:
@@ -171,8 +180,13 @@ class GameplayScreen:
             if enemy.stats["hp"] <= 0:
                 self.handle_enemy_death(enemy)
         
+        # ★追加: 状態に応じたリターン処理
         if self.game_state == "GAME_OVER":
             return "GAME_OVER"
+        
+        # ★追加: ゲームクリア時の遷移
+        if self.game_state == "GAME_CLEAR":
+            return "GAME_CLEAR"
 
         return None
 
@@ -247,59 +261,46 @@ class GameplayScreen:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1: self.handle_levelup_click(event.pos)
 
+    # src/scenes/game_play_screen.py
+
     def handle_enemy_death(self, enemy):
         enemy.death_time = time.time()
         self.db.log_mob_death(enemy, generation=self.current_generation, biome=self.biome)
         
-        # ==========================================================
-        # ボス撃破時の処理
-        # ==========================================================
         if enemy == self.active_boss:
             self.active_boss = None 
             
-            # 1. 中心にメインの花を咲かせる
-            # camera_groupに入れることで描画され、decorationsに入れることで背景物として管理
+            # 花畑演出
             GraveFlower(enemy.rect.center, [self.camera_group, self.decorations], "grave_flower_main.png")
-            
-            # 2. 周囲にサブの花を円形に咲かせる
             sub_flowers = ["grave_flower_orange.png", "grave_flower_blue.png", "grave_flower_yellow.png"]
-            
-            # 花の数（10〜15個くらい）
-            flower_count = random.randint(40, 60)
-            
+            flower_count = 12
             for i in range(flower_count):
-                # 角度を計算 (0 〜 360度)
-                angle = (360 / flower_count) * i
-                # ランダム性を加えて自然なバラつきを出す
-                angle += random.uniform(-15, 15)
-                
-                # 半径 (中心から 40px 〜 70px 離れた位置)
-                distance = random.uniform(100, 300)
-                
-                # 座標計算 (三角関数)
+                angle = (360 / flower_count) * i + random.uniform(-15, 15)
+                distance = random.uniform(40, 80)
                 rad = math.radians(angle)
                 offset_x = math.cos(rad) * distance
                 offset_y = math.sin(rad) * distance
-                
                 flower_pos = (enemy.rect.centerx + offset_x, enemy.rect.centery + offset_y)
-                
-                # 色をランダムに選択
                 color_img = random.choice(sub_flowers)
                 GraveFlower(flower_pos, [self.camera_group, self.decorations], color_img)
 
-            # 3. 経験値ジェム (花畑の上に散らばるように)
             for _ in range(5):
-                # 花と同じように少し散らして配置
                 scatter_pos = (
                     enemy.rect.centerx + random.randint(-50, 50),
                     enemy.rect.centery + random.randint(-50, 50)
                 )
                 ExpPurple(scatter_pos, groups=[self.camera_group, self.items_group])
 
-            print("BOSS DEFEATED! Flower garden created.")
-        
+            print("BOSS DEFEATED!")
+
+            # ★追加: ラスボス判定とゲームクリア処理
+            boss_name = enemy.stats.get("name", "")
+            if boss_name == "ANCIENT GOLEM":
+                print("CONGRATULATIONS! GAME CLEAR!")
+                self.game_state = "GAME_CLEAR"
+
         else:
-            # --- 通常モブのドロップ (変更なし) ---
+            # 通常モブのドロップ
             drop_count = random.randint(1, 2)
             for _ in range(drop_count):
                 ExpBlue(enemy.rect.center, groups=[self.camera_group, self.items_group])

@@ -93,7 +93,7 @@ MOB_BASE_STATS = {
 # --- 武器設定 ---
 ITEM_IMAGE_DIR = "assets/images/items"
 WEAPON_STATS = {
-    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 50, "cooldown": 600, "speed": 500, "spin_speed": 15},
+    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 5000, "cooldown": 600, "speed": 500, "spin_speed": 15},
     "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items-level1-enpitu.png", "size": 60, "damage": 10, "cooldown": 500, "speed": 600},
     "bread": {"name": "Guardian Bread", "tier": 1, "image": "items-level1-shokupan.png", "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
     "bear": {"name": "Bear Bomber", "tier": 1, "image": "items-level1-kumanuigurumi.png", "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
