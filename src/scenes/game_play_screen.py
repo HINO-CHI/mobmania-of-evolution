@@ -121,14 +121,15 @@ class GameplayScreen:
         self.camera_group.update(dt)
 
         # ★追加: 敵の弾 vs プレイヤーの当たり判定
-        hits_bullet = pygame.sprite.spritecollide(self.player, self.enemy_bullets, True, collided=collide_hit_rect)
+        hits_bullet = pygame.sprite.spritecollide(self.player, self.enemy_bullets, False, collided=collide_hit_rect)
         for bullet in hits_bullet:
             damage = bullet.damage
-            self.player.take_damage(damage)
             
             # ダメージ表示
-            dmg_text = FloatingText(self.player.rect.center, f"-{damage}", (255, 50, 50))
-            self.camera_group.add(dmg_text)
+            if self.player.take_damage(damage):
+                # True（ダメージが通った）ときだけ、テキストを出す
+                dmg_text = FloatingText(self.player.rect.center, f"-{damage}", (255, 50, 50))
+                self.camera_group.add(dmg_text)
             
             if self.player.hp <= 0:
                 self.game_state = "GAME_OVER"
