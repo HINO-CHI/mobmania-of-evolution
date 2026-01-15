@@ -9,7 +9,7 @@ from src.entities.player import Player
 from src.entities.enemy import Enemy, Boss
 from src.entities.weapons import (
     PencilGun, BreadShield, BearSmash, WoodenStick,
-    ThunderStaff, IceCream, GigaDrill,
+    ThunderStaff, IceCream, LaserCannon,
     load_weapon_image
 )
 from src.entities.items import (
@@ -85,6 +85,7 @@ class GameplayScreen:
         self.bg_color = config.STAGE_SETTINGS.get(self.biome, {}).get("bg_color", (34, 139, 34))
 
         self.player = Player((0, 0), self.camera_group, self.bullets_group, self.enemies_group)
+        self.player.items_group = self.items_group
         self.camera_group.add(self.player)
         
         self.map_gen.update(self.player.pos)
@@ -340,14 +341,26 @@ class GameplayScreen:
         self.level += 1
         self.game_state = "LEVEL_UP"
         print(f"=== LEVEL UP! Lv.{self.level} ===")
-        target_tier = 2 if self.level >= 3 else 1
-        weapon_pool = []
-        if target_tier == 1:
-            weapon_pool = [(PencilGun, "pencil"), (BreadShield, "bread"), (BearSmash, "bear")]
-        else:
-            weapon_pool = [(ThunderStaff, "thunder"), (IceCream, "ice"), (GigaDrill, "drill")]
-        count = min(len(weapon_pool), 3)
-        self.upgrade_options = random.sample(weapon_pool, count)
+        
+        # 必要な武器クラスをここでインポート（ファイル冒頭でのエラーや循環参照を防ぐため）
+        from src.entities.weapons import (
+            PencilGun, BreadShield, BearSmash, 
+            ThunderStaff, IceCream, LaserCannon
+        )
+        
+        # 全6種類の武器リストを作成
+        all_weapons = [
+            (PencilGun, "pencil"),
+            (BreadShield, "bread"),
+            (BearSmash, "bear"),
+            (ThunderStaff, "thunder"),
+            (IceCream, "ice"),
+            (LaserCannon, "drill")
+        ]
+        
+        # 全体からランダムに3つ選ぶ
+        count = min(len(all_weapons), 3)
+        self.upgrade_options = random.sample(all_weapons, count)
 
     def handle_levelup_click(self, mouse_pos):
         layout = config.LEVELUP_SCREEN

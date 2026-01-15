@@ -40,7 +40,7 @@ class Player(pygame.sprite.Sprite):
         self.hitbox = self.rect.inflate(-self.rect.width * 0.5, -self.rect.height * 0.6)
         
         # ★追加: HPステータス
-        self.max_hp = 1000
+        self.max_hp = 500
         self.hp = self.max_hp
 
         self.last_damage_time = 0
