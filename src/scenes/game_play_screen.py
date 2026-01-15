@@ -9,7 +9,7 @@ from src.entities.player import Player
 from src.entities.enemy import Enemy, Boss
 from src.entities.weapons import (
     PencilGun, BreadShield, BearSmash, WoodenStick,
-    ThunderStaff, IceCream, GigaDrill,
+    ThunderStaff, IceCream, LaserCannon,
     load_weapon_image
 )
 from src.entities.items import (
@@ -85,6 +85,7 @@ class GameplayScreen:
         self.bg_color = config.STAGE_SETTINGS.get(self.biome, {}).get("bg_color", (34, 139, 34))
 
         self.player = Player((0, 0), self.camera_group, self.bullets_group, self.enemies_group)
+        self.player.items_group = self.items_group
         self.camera_group.add(self.player)
         
         self.map_gen.update(self.player.pos)
@@ -340,14 +341,26 @@ class GameplayScreen:
         self.level += 1
         self.game_state = "LEVEL_UP"
         print(f"=== LEVEL UP! Lv.{self.level} ===")
-        target_tier = 2 if self.level >= 3 else 1
-        weapon_pool = []
-        if target_tier == 1:
-            weapon_pool = [(PencilGun, "pencil"), (BreadShield, "bread"), (BearSmash, "bear")]
-        else:
-            weapon_pool = [(ThunderStaff, "thunder"), (IceCream, "ice"), (GigaDrill, "drill")]
-        count = min(len(weapon_pool), 3)
-        self.upgrade_options = random.sample(weapon_pool, count)
+        
+        # 必要な武器クラスをここでインポート（ファイル冒頭でのエラーや循環参照を防ぐため）
+        from src.entities.weapons import (
+            PencilGun, BreadShield, BearSmash, 
+            ThunderStaff, IceCream, LaserCannon
+        )
+        
+        # 全6種類の武器リストを作成
+        all_weapons = [
+            (PencilGun, "pencil"),
+            (BreadShield, "bread"),
+            (BearSmash, "bear"),
+            (ThunderStaff, "thunder"),
+            (IceCream, "ice"),
+            (LaserCannon, "drill")
+        ]
+        
+        # 全体からランダムに3つ選ぶ
+        count = min(len(all_weapons), 3)
+        self.upgrade_options = random.sample(all_weapons, count)
 
     def handle_levelup_click(self, mouse_pos):
         layout = config.LEVELUP_SCREEN
@@ -418,7 +431,7 @@ class GameplayScreen:
         bar_w = 600
         bar_h = 25
         x = (config.SCREEN_WIDTH - bar_w) // 2
-        y = 50 # 画面上部
+        y = 100 # 画面上部
         
         # 背景
         pygame.draw.rect(screen, (0, 0, 0), (x, y, bar_w, bar_h))
@@ -487,31 +500,79 @@ class GameplayScreen:
         self.draw_weapon_slots(screen)
 
     def draw_weapon_slots(self, screen):
-        icon_size = 60
-        padding = 4
-        start_x = 0
-        start_y = 0
+        # 設定
+        icon_size = 60       # アイコンの大きさ
+        padding = 4          # アイコン同士の間隔
+        start_x = 0          # 左端の開始位置
+        start_y = 0          # 上端の開始位置
         
         weapons = getattr(self.player, "weapons", [])
+        current_time = pygame.time.get_ticks()
 
         for i, weapon in enumerate(weapons):
             x = start_x + (icon_size + padding) * i
             y = start_y
             
             slot_rect = pygame.Rect(x, y, icon_size, icon_size)
+            
+            # --- クールダウン計算 ---
+            cooldown = getattr(weapon, "cooldown", 0)
+            last_attack = getattr(weapon, "last_attack_time", 0)
+            progress = 1.0
+            
+            if cooldown > 0:
+                elapsed = current_time - last_attack
+                progress = min(1.0, elapsed / cooldown)
+            
+            # 1. 背景ボックス (進行度に応じて色を変える演出も可能)
             s = pygame.Surface((icon_size, icon_size), pygame.SRCALPHA)
-            s.fill((0, 0, 0, 128))
+            s.fill((0, 0, 0, 128)) # 半透明の黒
             screen.blit(s, (x, y))
-            pygame.draw.rect(screen, (200, 200, 200), slot_rect, 1)
+            
+            # 2. クールダウンゲージ (時計型)
+            if progress < 1.0:
+                # ゲージの背景 (暗い円)
+                center = (x + icon_size // 2, y + icon_size // 2)
+                radius = icon_size // 2 - 2
+                pygame.draw.circle(screen, (50, 50, 50), center, radius, 2)
+                
+                # ゲージ本体 (扇形を描く)
+                # pygame.draw.arc はラジアン指定 (0が右、時計回りに増える)
+                start_angle = -math.pi / 2 # 上 (12時) から開始
+                end_angle = start_angle + (2 * math.pi * progress)
+                
+                # arcは矩形指定で線を描くため、少し工夫が必要
+                # ここでは簡易的に「線」で円弧を描くか、
+                # もしくは「四角形の高さを変える」バー形式の方が実装は楽ですが、
+                # 「時計っぽい」という要望に合わせて円弧を描きます。
+                
+                # 塗りつぶしの扇形を描くのはPygameでは少し面倒なので、
+                # ここでは「半透明の黒いオーバーレイ」の高さを変える方式で代用します
+                # (時計型に見えるように円形マスクをかけるのがベストですが、コードが長くなるため)
+                
+                # 代替案: 「円形のプログレスバー（線）」を描画
+                rect = pygame.Rect(x + 2, y + 2, icon_size - 4, icon_size - 4)
+                if progress > 0:
+                    pygame.draw.arc(screen, (0, 255, 255), rect, start_angle, end_angle, 4)
 
+            # 3. 武器アイコンの描画
             try:
                 img = None
                 if hasattr(weapon, "image") and weapon.image:
                     img = weapon.image
+                elif hasattr(weapon, "bullet_image") and weapon.bullet_image:
+                    img = weapon.bullet_image
                 
                 if img:
-                    img = pygame.transform.scale(img, (icon_size - 4, icon_size - 4))
-                    screen.blit(img, (x + 2, y + 2))
+                    img = pygame.transform.scale(img, (icon_size - 8, icon_size - 8))
+                    
+                    # クールダウン中は暗くする
+                    if progress < 1.0:
+                        dark_img = img.copy()
+                        dark_img.fill((100, 100, 100, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                        screen.blit(dark_img, (x + 4, y + 4))
+                    else:
+                        screen.blit(img, (x + 4, y + 4))
                 else:
                     name = getattr(weapon, "name", "?")
                     text_surf = self.ui_font_bold.render(name[:1], True, (255, 255, 255))
@@ -521,6 +582,11 @@ class GameplayScreen:
             except Exception as e:
                 print(f"Icon draw error: {e}")
 
+            # 4. 枠線 (使用可能なら明るく)
+            border_color = (255, 255, 0) if progress >= 1.0 else (100, 100, 100)
+            pygame.draw.rect(screen, border_color, slot_rect, 2)
+
+            # 5. レベル表示
             lvl = getattr(weapon, "level", 1)
             lvl_surf = self.ui_font.render(str(lvl), True, (255, 255, 0))
             lvl_rect = lvl_surf.get_rect(bottomright=(x + icon_size - 2, y + icon_size - 2))

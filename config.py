@@ -83,23 +83,52 @@ BULLET_LIFETIME = 1000
 # --- モブ設定 ---
 MOB_IMAGE_DIR = "assets/images/mobs"
 MOB_BASE_STATS = {
-    0: {"name": "Tree", "image": "mob_tree.png", "hp": 25, "speed": 50, "min_speed": 30, "max_speed": 100, "size": 70, "attack": 10, "defense_rate": 1.2, "attack_type": "contact"},
-    1: {"name": "Kinoko", "image": "mob_kinoko.png", "hp": 10, "speed": 70, "min_speed": 30, "max_speed": 140, "size": 50, "attack": 5, "defense_rate": 1.0, "attack_type": "contact"},
-    2: {"name": "Golem", "image": "mob_golem.png", "hp": 100, "speed": 10, "min_speed": 10, "max_speed": 40, "size": 170, "attack": 25, "defense_rate": 2.0, "attack_type": "contact"},
-    3: {"name": "Bluebird", "image": "mob_bluebird.png", "hp": 8, "speed": 220, "min_speed": 100, "max_speed": 400, "size": 50, "attack": 12, "defense_rate": 0.8, "attack_type": "contact"},
-    4: {"name": "Snail", "image": "mob_snail.png", "hp": 15, "speed": 30, "min_speed": 10, "max_speed": 60, "size": 40, "attack": 8, "defense_rate": 3.0, "attack_type": "contact"}
+    0: {"name": "Tree", "image": "mob_tree.png", "hp": 150, "speed": 50, "min_speed": 30, "max_speed": 100, "size": 70, "attack": 10, "defense_rate": 1.2, "attack_type": "contact"},
+    1: {"name": "Kinoko", "image": "mob_kinoko.png", "hp": 80, "speed": 70, "min_speed": 30, "max_speed": 140, "size": 50, "attack": 5, "defense_rate": 1.0, "attack_type": "contact"},
+    2: {"name": "Golem", "image": "mob_golem.png", "hp": 300, "speed": 10, "min_speed": 10, "max_speed": 40, "size": 170, "attack": 25, "defense_rate": 2.0, "attack_type": "contact"},
+    3: {"name": "Bluebird", "image": "mob_bluebird.png", "hp": 50, "speed": 220, "min_speed": 100, "max_speed": 400, "size": 50, "attack": 12, "defense_rate": 0.8, "attack_type": "contact"},
+    4: {"name": "Snail", "image": "mob_snail.png", "hp": 15, "speed": 30, "min_speed": 10, "max_speed": 60, "size": 40, "attack": 8, "defense_rate": 5.0, "attack_type": "contact"}
 }
 
 # --- 武器設定 ---
 ITEM_IMAGE_DIR = "assets/images/items"
 WEAPON_STATS = {
-    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 5000, "cooldown": 600, "speed": 500, "spin_speed": 15},
-    "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items-level1-enpitu.png", "size": 60, "damage": 10, "cooldown": 500, "speed": 600},
-    "bread": {"name": "Guardian Bread", "tier": 1, "image": "items-level1-shokupan.png", "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
-    "bear": {"name": "Bear Bomber", "tier": 1, "image": "items-level1-kumanuigurumi.png", "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
-    "thunder": {"name": "Thunder Staff", "tier": 2, "image": "items-level2-thunder.png", "size": 60, "damage": 15, "cooldown": 800},
-    "ice": {"name": "Ice Cream Cone", "tier": 2, "image": "items-level2-ice.png", "size": 50, "damage": 8, "cooldown": 400},
-    "drill": {"name": "Giga Drill", "tier": 2, "image": "items-level2-drill.png", "size": 70, "damage": 20, "cooldown": 1000}
+    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items_edge.png", "size": 80, "damage": 75, "cooldown": 600, "speed": 500, "spin_speed": 15},
+    "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items_enpitu.png", "size": 60, "damage": 100, "cooldown": 500, "speed": 600},
+    "bread": {"name": "Guardian Bread", "tier": 1, "image": "items_shokupan.png", "size": 50, "damage": 50, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
+    "bear": {"name": "Bear Bomber", "tier": 1, "image": "items_kumanuigurumi.png", "size": 120, "damage": 300, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
+    "thunder": {
+        "name": "Pulse Barrier", 
+        "damage": 0,            
+        "cooldown": 0,         
+        "rot_speed": 0.1,     
+        "radius": 120,       
+        "orb_count": 2,     
+        "stun_duration": 1000,
+        "collect_radius": 250, 
+        "image": "items_pulse.png",
+        "size": 64
+    },
+    "ice": {
+        "name": "Milk Bottle", 
+        "damage": 0,
+        "heal_amount": 75,
+        "cooldown": 30000,
+        "image": "items_milk.png",
+        "size": 128
+    },
+    "drill": {
+        "name": "Giga Laser",     # 名前変更
+        "damage": 600,            # 桁違いの威力
+        "cooldown": 10000,        # 10秒 (10000ms)
+        "image": "items_laser.png",
+        "size": 32,
+        
+        # ★レーザー専用設定
+        "laser_width": 100,       # 太さ (ピクセル)
+        "laser_length": 1200,     # 長さ (画面端まで届くように)
+        "duration": 1500           # 照射時間 
+    }
 }
 
 # ==========================================
@@ -238,8 +267,8 @@ BOSS_SCHEDULE = {
     1: {
         "filename": "mini_boss_big_tree.png",
         "name": "Big Tree",
-        "hp": 500,
-        "damage": 10,
+        "hp": 5000,
+        "damage": 100,
         "scale": (600, 600),
         "hitbox": (400, 400),
         "speed": 1.5,
@@ -257,8 +286,8 @@ BOSS_SCHEDULE = {
     2: {
         "filename": "mini_boss_kinoko.png",
         "name": "Giant Kinoko",
-        "hp": 800,
-        "damage": 12,
+        "hp": 8000,
+        "damage": 100,
         "scale": (600, 600),
         "hitbox": (400, 400),
         "speed": 1.5,
@@ -276,8 +305,8 @@ BOSS_SCHEDULE = {
     3: {
         "filename": "mini_boss_turtle.png",
         "name": "Iron Turtle",
-        "hp": 1500,
-        "damage": 15,
+        "hp": 15000,
+        "damage": 120,
         "scale": (600, 600),
         "hitbox": (400, 400),
         "speed": 1.2,
@@ -295,8 +324,8 @@ BOSS_SCHEDULE = {
     4: {
         "filename": "mini_boss_kinoko_derk.png",
         "name": "Dark Kinoko",
-        "hp": 2000,
-        "damage": 18,
+        "hp": 50000,
+        "damage": 70,
         "scale": (600, 600),
         "hitbox": (400, 400),
         "speed": 1.6,
@@ -314,8 +343,8 @@ BOSS_SCHEDULE = {
     5: {
         "filename": "mini_boss_cobra.png",
         "name": "King Cobra",
-        "hp": 3000,
-        "damage": 25,
+        "hp": 100000,
+        "damage": 150,
         "scale": (600, 600),
         "hitbox": (400, 400),
         "speed": 1.8,
@@ -333,8 +362,8 @@ BOSS_SCHEDULE = {
     6: {
         "filename": "boss_golem.png",
         "name": "ANCIENT GOLEM",
-        "hp": 10000,
-        "damage": 40,
+        "hp": 300000,
+        "damage": 200,
         "scale": (800, 800),       # 超巨大
         "hitbox": (500, 500),
         "speed": 0.8,

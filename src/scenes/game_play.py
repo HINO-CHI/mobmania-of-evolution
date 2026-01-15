@@ -7,7 +7,7 @@ from src.entities.player import Player
 from src.entities.enemy import Enemy
 from src.entities.weapons import (
     PencilGun, BreadShield, BearSmash, WoodenStick,
-    ThunderStaff, IceCream, GigaDrill,
+    ThunderStaff, IceCream, LaserCannon,
     load_weapon_image
 )
 from src.system.db_manager import DBManager

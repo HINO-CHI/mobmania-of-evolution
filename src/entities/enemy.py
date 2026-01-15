@@ -14,6 +14,8 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, start_pos, player, enemy_group, stats=None):
         super().__init__()
         self.enemy_group = enemy_group
+
+        self.stun_end_time = 0
         
         # --- 1. ステータス設定 ---
         if stats:
@@ -97,6 +99,14 @@ class Enemy(pygame.sprite.Sprite):
         self.separation_timer = id(self) % self.update_interval
 
     def update(self, dt):
+
+        # スタン中は移動処理をスキップ
+        current_time = pygame.time.get_ticks()
+        if current_time < self.stun_end_time:
+            # スタン中はアニメーションだけ更新するか、完全に止めるか
+            # ここでは移動計算(self.move)を呼ばないことで停止させる
+            return
+        
         # 1. プレイヤー追尾ベクトル
         to_player = self.player.pos - self.pos
         if to_player.length() > 0:
@@ -171,6 +181,14 @@ class Enemy(pygame.sprite.Sprite):
         if self.stats["hp"] <= 0:
             return True
         return False
+    
+    # ★追加: 外部からスタンさせるためのメソッド
+    def apply_stun(self, duration_ms):
+        current_time = pygame.time.get_ticks()
+        # 既にスタンしているなら、より長い時間の方を採用して延長
+        new_end_time = current_time + duration_ms
+        if new_end_time > self.stun_end_time:
+            self.stun_end_time = new_end_time
     
 # ==========================================
 # ボス・中ボスクラス
