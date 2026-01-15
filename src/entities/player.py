@@ -40,8 +40,10 @@ class Player(pygame.sprite.Sprite):
         self.hitbox = self.rect.inflate(-self.rect.width * 0.5, -self.rect.height * 0.6)
         
         # ★追加: HPステータス
-        self.max_hp = 100
+        self.max_hp = 1000
         self.hp = self.max_hp
+
+        self.last_damage_time = 0
         
         # 武器管理
         self.all_sprites = all_sprites
@@ -86,10 +88,21 @@ class Player(pygame.sprite.Sprite):
 
     # ★追加: ダメージを受ける処理
     def take_damage(self, amount):
+        current_time = pygame.time.get_ticks()
+        
+        # 前回のダメージから500ms(約30フレーム)経過していなければ無視して終了
+        if current_time - self.last_damage_time < 1000:
+            return False
+
+        # ダメージ処理実行
+        self.last_damage_time = current_time
         self.hp -= amount
+        
         if self.hp < 0:
             self.hp = 0
+            
         print(f"Player took damage! HP: {self.hp}/{self.max_hp}")
+        return True
 
     def add_weapon(self, weapon_class):
         for weapon in self.weapons:

@@ -3,7 +3,7 @@ import config
 from src.scenes.title_screen import TitleScreen
 from src.scenes.game_play_screen import GameplayScreen
 from src.scenes.stage_select import StageSelectScreen
-# ★追加: ゲームオーバー画面をインポート
+from src.scenes.game_clear_screen import GameClearScreen
 from src.scenes.game_over import GameOverScreen
 from pygame.locals import *
 
@@ -119,6 +119,9 @@ def main():
             current_scene_key = "GAME_OVER"
             scenes["GAME_OVER"] = GameOverScreen(last_stage_key)          
             current_scene = scenes["GAME_OVER"]
+
+        elif result == "GAME_CLEAR":
+            current_scene = GameClearScreen()
             
         elif result == "TITLE":
             current_scene_key = "TITLE"

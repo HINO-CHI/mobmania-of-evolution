@@ -93,7 +93,7 @@ MOB_BASE_STATS = {
 # --- 武器設定 ---
 ITEM_IMAGE_DIR = "assets/images/items"
 WEAPON_STATS = {
-    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 5, "cooldown": 600, "speed": 500, "spin_speed": 15},
+    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 5000, "cooldown": 600, "speed": 500, "spin_speed": 15},
     "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items-level1-enpitu.png", "size": 60, "damage": 10, "cooldown": 500, "speed": 600},
     "bread": {"name": "Guardian Bread", "tier": 1, "image": "items-level1-shokupan.png", "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
     "bear": {"name": "Bear Bomber", "tier": 1, "image": "items-level1-kumanuigurumi.png", "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
@@ -228,4 +228,133 @@ DROP_SETTINGS = {
     "healing_size": (70, 70),   # 回復アイテムの表示サイズ
     "magnet_range": 150,        # プレイヤーが近づいた時の吸い寄せ開始距離
     "acceleration": 900         # 吸い寄せ時の加速度
+}
+
+# ==========================================
+# ボス出現スケジュールと設定
+# キー: 出現する経過時間（分）
+# ==========================================
+BOSS_SCHEDULE = {
+    1: {
+        "filename": "mini_boss_big_tree.png",
+        "name": "Big Tree",
+        "hp": 500,
+        "damage": 10,
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.5,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_edge.png",
+                "count": 8,
+                "speed": 3,
+                "size": (200, 200),  # ボスに合わせて弾も大きく
+                "damage_rate": 1.0
+            }
+        ]
+    },
+    2: {
+        "filename": "mini_boss_kinoko.png",
+        "name": "Giant Kinoko",
+        "hp": 800,
+        "damage": 12,
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.5,
+        "attacks": [
+            {
+                "type": "random",
+                "image": "attack_spore_nomal.png",
+                "count": 4,
+                "speed": 3,
+                "size": (60, 60),
+                "damage_rate": 1.0
+            }
+        ]
+    },
+    3: {
+        "filename": "mini_boss_turtle.png",
+        "name": "Iron Turtle",
+        "hp": 1500,
+        "damage": 15,
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.2,
+        "attacks": [
+            {
+                "type": "target",
+                "image": "attack_dust.png",
+                "count": 1,
+                "speed": 2,
+                "size": (240, 240), # 重い一撃
+                "damage_rate": 1.5
+            }
+        ]
+    },
+    4: {
+        "filename": "mini_boss_kinoko_derk.png",
+        "name": "Dark Kinoko",
+        "hp": 2000,
+        "damage": 18,
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.6,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_spore_poison.png",
+                "count": 16,
+                "speed": 4,
+                "size": (50, 50),
+                "damage_rate": 1.0
+            }
+        ]
+    },
+    5: {
+        "filename": "mini_boss_cobra.png",
+        "name": "King Cobra",
+        "hp": 3000,
+        "damage": 25,
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.8,
+        "attacks": [
+            {
+                "type": "target_rapid", # 連射
+                "image": "attack_poison.png",
+                "count": 3,
+                "speed": 8,
+                "size": (80, 40),
+                "damage_rate": 1.0
+            }
+        ]
+    },
+    6: {
+        "filename": "boss_golem.png",
+        "name": "ANCIENT GOLEM",
+        "hp": 10000,
+        "damage": 40,
+        "scale": (800, 800),       # 超巨大
+        "hitbox": (500, 500),
+        "speed": 0.8,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_laser.png",
+                "count": 24,
+                "speed": 4,
+                "size": (100, 30), # 長いレーザー
+                "damage_rate": 1.0
+            },
+            {
+                "type": "target",
+                "image": "attack_laser.png",
+                "count": 1,
+                "speed": 7,
+                "size": (150, 40), # 巨大レーザー
+                "damage_rate": 1.5
+            }
+        ]
+    }
 }

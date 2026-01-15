@@ -2,14 +2,16 @@ import pygame
 import random
 import time
 import config
+import math
+
 from src.entities.player import Player
-from src.entities.enemy import Enemy
+# ★変更: Bossクラスをインポート
+from src.entities.enemy import Enemy, Boss
 from src.entities.weapons import (
     PencilGun, BreadShield, BearSmash, WoodenStick,
     ThunderStaff, IceCream, GigaDrill,
     load_weapon_image
 )
-# ★変更: 新しい回復アイテムと HealingItem 基底クラスをインポート
 from src.entities.items import (
     ExpBlue, ExpYellow, ExpPurple, 
     HealingItem, Candy, Chocolate, ChortCake
@@ -20,19 +22,16 @@ from src.system.evolution import EvolutionManager
 from src.system.map_generator import MapGenerator
 from src.scenes.game_play import CameraGroup
 from src.scenes.game_play import FloatingText
+from src.entities.grave import GraveFlower
+from src.entities.enemy_projectile import EnemyProjectile
 
-AGGRO_PHRASES = [
-    "Ouch!", "Hey!", "Stop it!", "No!", "Why!", "It hurts!", "Watch out!"
-]
+AGGRO_PHRASES = ["Ouch!", "Hey!", "Stop it!", "No!", "Why!", "It hurts!", "Watch out!"]
 
 def collide_hit_rect(one, two):
     r1 = getattr(one, 'hitbox', one.rect)
     r2 = getattr(two, 'hitbox', two.rect)
     return r1.colliderect(r2)
 
-# ==========================================
-# ゲームプレイ画面クラス
-# ==========================================
 class GameplayScreen:
     def __init__(self, biome_type):
         self.biome = biome_type
@@ -55,6 +54,23 @@ class GameplayScreen:
         self.last_spawn_time = 0
         self.spawn_interval = 800
         self.last_damage_time = 0
+        self.enemies_group = pygame.sprite.Group()
+        self.enemy_bullets = pygame.sprite.Group()
+
+        # ★追加: ゲーム開始時刻とボス管理
+        self.start_time = pygame.time.get_ticks()
+        self.active_boss = None
+        self.spawned_boss_minutes = set() # すでに出現させた時間を記録
+
+        # ★追加: ボスの出現スケジュール (分: (ファイル名, 名前, HP, 攻撃力, サイズ))
+        self.boss_schedule = {
+            1: ("mini_boss_big_tree.png", "Big Tree", 500, 10, (120, 120)),
+            2: ("mini_boss_kinoko.png", "Giant Kinoko", 800, 12, (100, 100)),
+            3: ("mini_boss_turtle.png", "Iron Turtle", 1500, 15, (130, 100)),
+            4: ("mini_boss_kinoko_derk.png", "Dark Kinoko", 2000, 18, (110, 110)),
+            5: ("mini_boss_cobra.png", "King Cobra", 3000, 25, (150, 150)),
+            6: ("boss_golem.png", "ANCIENT GOLEM", 10000, 40, (200, 200)) # ラスボス
+        }
 
         self.camera_group = CameraGroup()
         self.bullets_group = pygame.sprite.Group()
@@ -86,28 +102,51 @@ class GameplayScreen:
     def update(self, dt):
         if self.game_state == "LEVEL_UP": return
 
+        # ★追加: 10分経過チェック (10分 * 60秒 * 1000ミリ秒)
+        elapsed_ms = pygame.time.get_ticks() - self.start_time
+        if elapsed_ms >= 10 * 60 * 1000:
+            print("Time Limit Reached! Game Over.")
+            self.game_state = "GAME_OVER"
+            return "GAME_OVER"
+        
+        self.enemy_bullets.update(dt)
+
+        # ボス出現チェック
+        self.check_boss_spawn()
+
         self.map_gen.update(self.player.pos)
         self.camera_group.add(self.obstacles.sprites())
         self.spawn_enemies()
         
         self.camera_group.update(dt)
 
+        # ★追加: 敵の弾 vs プレイヤーの当たり判定
+        hits_bullet = pygame.sprite.spritecollide(self.player, self.enemy_bullets, False, collided=collide_hit_rect)
+        for bullet in hits_bullet:
+            damage = bullet.damage
+            
+            # ダメージ表示
+            if self.player.take_damage(damage):
+                # True（ダメージが通った）ときだけ、テキストを出す
+                dmg_text = FloatingText(self.player.rect.center, f"-{damage}", (255, 50, 50))
+                self.camera_group.add(dmg_text)
+            
+            if self.player.hp <= 0:
+                self.game_state = "GAME_OVER"
+                return "GAME_OVER"
+
         # アイテム更新
         self.items_group.update(dt, self.player.rect.center)
 
-        # ★変更: アイテム回収判定 (HealingItem クラスでまとめて判定)
+        # アイテム回収判定
         hits_items = pygame.sprite.spritecollide(self.player, self.items_group, True, collided=collide_hit_rect)
         for item in hits_items:
-            # HealingItem (Candy, Chocolate, Cake) かどうか
             if isinstance(item, HealingItem):
                 recover = item.value
                 if self.player.hp < self.player.max_hp:
                     self.player.hp = min(self.player.hp + recover, self.player.max_hp)
-                    # 緑色で回復数値を表示
                     heal_text = FloatingText(self.player.rect.center, f"+{recover}", (0, 255, 0))
                     self.camera_group.add(heal_text)
-            
-            # それ以外（経験値ジェム）
             elif hasattr(item, 'value'):
                 self.current_exp += item.value
                 self.check_level_up()
@@ -161,11 +200,52 @@ class GameplayScreen:
             if enemy.stats["hp"] <= 0:
                 self.handle_enemy_death(enemy)
         
+        # ★追加: 状態に応じたリターン処理
         if self.game_state == "GAME_OVER":
             return "GAME_OVER"
+        
+        # ★追加: ゲームクリア時の遷移
+        if self.game_state == "GAME_CLEAR":
+            return "GAME_CLEAR"
 
         return None
 
+# src/scenes/game_play_screen.py
+
+    def check_boss_spawn(self):
+        elapsed_ms = pygame.time.get_ticks() - self.start_time
+        current_minute = elapsed_ms // 60000
+        
+        # スケジュールにあり、かつ まだ出現させていない場合
+        if current_minute in config.BOSS_SCHEDULE and current_minute not in self.spawned_boss_minutes:
+            boss_data = config.BOSS_SCHEDULE[current_minute]
+            
+            print(f"!!! SPAWNING BOSS: {boss_data['name']} at {current_minute} min !!!")
+            
+            px, py = self.player.rect.center
+            
+            # 出現位置：プレイヤーの周囲500px〜1500pxのどこか（ランダム）
+            spawn_pos = (
+                px + random.randint(500, 1500) * random.choice([-1, 1]), 
+                py + random.randint(500, 1500) * random.choice([-1, 1])
+            )
+            
+            # ★★★ ここが修正の核心です ★★★
+            # groups のリストに必ず 3つ の要素を入れてください。
+            # 3番目に self.enemy_bullets があることが絶対条件です。
+            boss = Boss(
+                pos=spawn_pos, 
+                player=self.player, 
+                groups=[self.camera_group, self.enemies_group, self.enemy_bullets], 
+                boss_data=boss_data
+            )
+            
+            self.active_boss = boss
+            self.spawned_boss_minutes.add(current_minute)
+            
+            warning_text = FloatingText((px, py - 50), f"WARNING: {boss_data['name']}!!", (255, 0, 0), duration=3000)
+            self.camera_group.add(warning_text)
+            
     def handle_events(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN:
@@ -175,41 +255,71 @@ class GameplayScreen:
                     self.check_level_up()
                 if event.key == pygame.K_h:
                     self.camera_group.debug_mode = not self.camera_group.debug_mode
+                if event.key == pygame.K_t:
+                    self.start_time -= 10000
+                    print("Debug: Time skipped +1 min")
+
 
             if self.game_state == "LEVEL_UP":
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1: self.handle_levelup_click(event.pos)
 
+    # src/scenes/game_play_screen.py
+
     def handle_enemy_death(self, enemy):
         enemy.death_time = time.time()
         self.db.log_mob_death(enemy, generation=self.current_generation, biome=self.biome)
         
-        # ==========================================================
-        # ドロップロジック
-        # ==========================================================
-        
-        # 1. 経験値ジェム
-        drop_count = random.randint(1, 2)
-        for _ in range(drop_count):
-            ExpBlue(enemy.rect.center, groups=[self.camera_group, self.items_group])
-
-        max_hp = enemy.stats.get("max_hp", enemy.stats.get("hp", 10))
-        if max_hp >= 50:
-            ExpYellow(enemy.rect.center, groups=[self.camera_group, self.items_group])
+        if enemy == self.active_boss:
+            self.active_boss = None 
             
-        if random.random() < 0.01:
-            ExpPurple(enemy.rect.center, groups=[self.camera_group, self.items_group])
+            # 花畑演出
+            GraveFlower(enemy.rect.center, [self.camera_group, self.decorations], "grave_flower_main.png")
+            sub_flowers = ["grave_flower_orange.png", "grave_flower_blue.png", "grave_flower_yellow.png"]
+            flower_count = 12
+            for i in range(flower_count):
+                angle = (360 / flower_count) * i + random.uniform(-15, 15)
+                distance = random.uniform(40, 80)
+                rad = math.radians(angle)
+                offset_x = math.cos(rad) * distance
+                offset_y = math.sin(rad) * distance
+                flower_pos = (enemy.rect.centerx + offset_x, enemy.rect.centery + offset_y)
+                color_img = random.choice(sub_flowers)
+                GraveFlower(flower_pos, [self.camera_group, self.decorations], color_img)
 
-        # 2. ★変更: 回復アイテム (お菓子) のドロップ
-        # 全体で 5% の確率で回復アイテムを落とす
-        if random.random() < 0.05:
-            r = random.random()
-            if r < 0.6:   # 60% の確率でキャンディ (Small)
-                Candy(enemy.rect.center, groups=[self.camera_group, self.items_group])
-            elif r < 0.9: # 30% の確率でチョコレート (Medium)
-                Chocolate(enemy.rect.center, groups=[self.camera_group, self.items_group])
-            else:         # 10% の確率でケーキ (Large)
-                ChortCake(enemy.rect.center, groups=[self.camera_group, self.items_group])
+            for _ in range(5):
+                scatter_pos = (
+                    enemy.rect.centerx + random.randint(-50, 50),
+                    enemy.rect.centery + random.randint(-50, 50)
+                )
+                ExpPurple(scatter_pos, groups=[self.camera_group, self.items_group])
+
+            print("BOSS DEFEATED!")
+
+            # ★追加: ラスボス判定とゲームクリア処理
+            boss_name = enemy.stats.get("name", "")
+            if boss_name == "ANCIENT GOLEM":
+                print("CONGRATULATIONS! GAME CLEAR!")
+                self.game_state = "GAME_CLEAR"
+
+        else:
+            # 通常モブのドロップ
+            drop_count = random.randint(1, 2)
+            for _ in range(drop_count):
+                ExpBlue(enemy.rect.center, groups=[self.camera_group, self.items_group])
+
+            max_hp = enemy.stats.get("max_hp", enemy.stats.get("hp", 10))
+            if max_hp >= 50:
+                ExpYellow(enemy.rect.center, groups=[self.camera_group, self.items_group])
+                
+            if random.random() < 0.01:
+                ExpPurple(enemy.rect.center, groups=[self.camera_group, self.items_group])
+
+            if random.random() < 0.05:
+                r = random.random()
+                if r < 0.6: Candy(enemy.rect.center, groups=[self.camera_group, self.items_group])
+                elif r < 0.9: Chocolate(enemy.rect.center, groups=[self.camera_group, self.items_group])
+                else: ChortCake(enemy.rect.center, groups=[self.camera_group, self.items_group])
 
         enemy.kill()
         self.mobs_killed_in_wave += 1
@@ -220,12 +330,10 @@ class GameplayScreen:
         if self.current_exp >= self.next_level_exp:
             while self.current_exp >= self.next_level_exp:
                 self.current_exp -= self.next_level_exp
-                
                 if self.level < len(self.level_exp_curve):
                     self.next_level_exp = self.level_exp_curve[self.level]
                 else:
                     self.next_level_exp = self.level_exp_curve[-1]
-                
                 self.start_level_up_sequence()
 
     def start_level_up_sequence(self):
@@ -291,9 +399,41 @@ class GameplayScreen:
     def draw(self, screen):
         self.camera_group.custom_draw(self.player, self.bg_color, self.decorations)
         self.draw_player_health_bar(screen)
+        
+        # ★追加: ボスHPバー表示
+        if self.active_boss and self.active_boss.alive():
+            self.draw_boss_health_bar(screen)
+
         self.draw_ui(screen)
         if self.game_state == "LEVEL_UP":
             self.draw_level_up_screen(screen)
+
+    # ★追加: ボスHPバー描画メソッド
+    def draw_boss_health_bar(self, screen):
+        boss = self.active_boss
+        hp = max(0, boss.stats["hp"])
+        max_hp = boss.stats.get("max_hp", hp)
+        ratio = hp / max_hp if max_hp > 0 else 0
+        
+        bar_w = 600
+        bar_h = 25
+        x = (config.SCREEN_WIDTH - bar_w) // 2
+        y = 50 # 画面上部
+        
+        # 背景
+        pygame.draw.rect(screen, (0, 0, 0), (x, y, bar_w, bar_h))
+        # HP (赤)
+        pygame.draw.rect(screen, (180, 0, 0), (x, y, bar_w * ratio, bar_h))
+        # 枠
+        pygame.draw.rect(screen, (255, 255, 255), (x, y, bar_w, bar_h), 3)
+        
+        # 名前表示
+        name_surf = self.ui_font_bold.render(boss.stats.get("name", "BOSS"), True, (255, 255, 255))
+        name_rect = name_surf.get_rect(midbottom=(config.SCREEN_WIDTH // 2, y - 5))
+        # 影
+        shadow_surf = self.ui_font_bold.render(boss.stats.get("name", "BOSS"), True, (0, 0, 0))
+        screen.blit(shadow_surf, (name_rect.x+2, name_rect.y+2))
+        screen.blit(name_surf, name_rect)
 
     def draw_player_health_bar(self, screen):
         if self.player.hp <= 0: return
@@ -335,6 +475,14 @@ class GameplayScreen:
         lvl_y = 20
         screen.blit(level_shadow, (lvl_x + 2, lvl_y + 2))
         screen.blit(level_text, (lvl_x, lvl_y))
+        
+        # 時間表示 (オプション)
+        elapsed_sec = (pygame.time.get_ticks() - self.start_time) // 1000
+        mins = elapsed_sec // 60
+        secs = elapsed_sec % 60
+        time_str = f"{mins:02}:{secs:02}"
+        time_surf = self.ui_font_large.render(time_str, True, (255, 255, 255))
+        screen.blit(time_surf, (config.SCREEN_WIDTH // 2 - time_surf.get_width() // 2, 20))
         
         self.draw_weapon_slots(screen)
 
