@@ -23,6 +23,7 @@ from src.system.map_generator import MapGenerator
 from src.scenes.game_play import CameraGroup
 from src.scenes.game_play import FloatingText
 from src.entities.grave import GraveFlower
+from src.entities.enemy_projectile import EnemyProjectile
 
 AGGRO_PHRASES = ["Ouch!", "Hey!", "Stop it!", "No!", "Why!", "It hurts!", "Watch out!"]
 
@@ -53,6 +54,8 @@ class GameplayScreen:
         self.last_spawn_time = 0
         self.spawn_interval = 800
         self.last_damage_time = 0
+        self.enemies_group = pygame.sprite.Group()
+        self.enemy_bullets = pygame.sprite.Group()
 
         # ★追加: ゲーム開始時刻とボス管理
         self.start_time = pygame.time.get_ticks()
@@ -105,6 +108,8 @@ class GameplayScreen:
             print("Time Limit Reached! Game Over.")
             self.game_state = "GAME_OVER"
             return "GAME_OVER"
+        
+        self.enemy_bullets.update(dt)
 
         # ボス出現チェック
         self.check_boss_spawn()
@@ -114,6 +119,20 @@ class GameplayScreen:
         self.spawn_enemies()
         
         self.camera_group.update(dt)
+
+        # ★追加: 敵の弾 vs プレイヤーの当たり判定
+        hits_bullet = pygame.sprite.spritecollide(self.player, self.enemy_bullets, True, collided=collide_hit_rect)
+        for bullet in hits_bullet:
+            damage = bullet.damage
+            self.player.take_damage(damage)
+            
+            # ダメージ表示
+            dmg_text = FloatingText(self.player.rect.center, f"-{damage}", (255, 50, 50))
+            self.camera_group.add(dmg_text)
+            
+            if self.player.hp <= 0:
+                self.game_state = "GAME_OVER"
+                return "GAME_OVER"
 
         # アイテム更新
         self.items_group.update(dt, self.player.rect.center)
@@ -190,25 +209,33 @@ class GameplayScreen:
 
         return None
 
+# src/scenes/game_play_screen.py
+
     def check_boss_spawn(self):
         elapsed_ms = pygame.time.get_ticks() - self.start_time
         current_minute = elapsed_ms // 60000
         
-        # config.BOSS_SCHEDULE を参照
+        # スケジュールにあり、かつ まだ出現させていない場合
         if current_minute in config.BOSS_SCHEDULE and current_minute not in self.spawned_boss_minutes:
             boss_data = config.BOSS_SCHEDULE[current_minute]
             
             print(f"!!! SPAWNING BOSS: {boss_data['name']} at {current_minute} min !!!")
             
-            # プレイヤーの頭上 250px
             px, py = self.player.rect.center
-            spawn_pos = (px, py - 250)
             
-            # ★修正: 引数を boss_data にまとめる
+            # 出現位置：プレイヤーの周囲500px〜1500pxのどこか（ランダム）
+            spawn_pos = (
+                px + random.randint(500, 1500) * random.choice([-1, 1]), 
+                py + random.randint(500, 1500) * random.choice([-1, 1])
+            )
+            
+            # ★★★ ここが修正の核心です ★★★
+            # groups のリストに必ず 3つ の要素を入れてください。
+            # 3番目に self.enemy_bullets があることが絶対条件です。
             boss = Boss(
                 pos=spawn_pos, 
                 player=self.player, 
-                groups=[self.camera_group, self.enemies_group],
+                groups=[self.camera_group, self.enemies_group, self.enemy_bullets], 
                 boss_data=boss_data
             )
             
@@ -231,31 +258,6 @@ class GameplayScreen:
                     self.start_time -= 10000
                     print("Debug: Time skipped +1 min")
 
-                if event.key == pygame.K_b:
-                    print("Debug: Force Spawning Boss!")
-                    # デバッグ用のダミーデータ
-                    debug_boss_data = {
-                        "filename": "mini_boss_big_tree.png",
-                        "name": "Debug Boss",
-                        "hp": 500,
-                        "damage": 10,
-                        "scale": (120, 120),
-                        "hitbox": (80, 80),
-                        "speed": 1.5
-                    }
-                    
-                    px, py = self.player.rect.center
-                    spawn_pos = (px, py - 200)
-                    
-                    boss = Boss(
-                        pos=spawn_pos,
-                        player=self.player,
-                        groups=[self.camera_group, self.enemies_group],
-                        boss_data=debug_boss_data # ★修正
-                    )
-                    self.active_boss = boss
-                    warning_text = FloatingText((px, py - 50), "DEBUG BOSS!!", (255, 0, 0), duration=2000)
-                    self.camera_group.add(warning_text)
 
             if self.game_state == "LEVEL_UP":
                 if event.type == pygame.MOUSEBUTTONDOWN:

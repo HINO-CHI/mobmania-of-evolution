@@ -5,6 +5,8 @@ import random
 import time
 from pygame.math import Vector2
 import config
+import math
+from src.entities.enemy_projectile import EnemyProjectile
 
 class Enemy(pygame.sprite.Sprite):
     _image_cache = {}
@@ -174,6 +176,7 @@ class Enemy(pygame.sprite.Sprite):
 # ボス・中ボスクラス
 # ==========================================
 
+# 画像読み込み用ヘルパー
 def load_boss_image(filename, scale_size=None):
     path = os.path.join("assets", "images", "boss", filename)
     try:
@@ -182,51 +185,120 @@ def load_boss_image(filename, scale_size=None):
             img = pygame.transform.scale(img, scale_size)
         return img
     except (FileNotFoundError, pygame.error):
-        print(f"Error loading boss image: {path}")
         return None
 
 class Boss(Enemy):
-    # 引数を整理: 個別の数値ではなく、configの辞書(boss_data)を受け取る形に変更
     def __init__(self, pos, player, groups, boss_data):
-        
         filename = boss_data["filename"]
         scale_size = boss_data["scale"]
         
-        # ボス用の画像読み込み
         img = load_boss_image(filename, scale_size)
-        
-        # 画像がない場合のフォールバック
         if img is None:
             img = pygame.Surface(scale_size)
             img.fill((100, 0, 0) if "golem" in filename else (255, 100, 0))
 
-        # Enemyクラスに渡すstatsを作成
         stats = {
             "hp": boss_data["hp"],
             "max_hp": boss_data["hp"],
             "speed": boss_data["speed"],
             "damage": boss_data["damage"],
-            "exp": 1000, # ボス経験値
+            "exp": 1000,
             "name": boss_data["name"],
-            "image": img 
+            "image": img,
+            "attacks": boss_data.get("attacks", []) # configから技設定を受け取る
         }
         
-        # Enemy初期化
+        # --- グループの受け取り ---
         target_group = groups[1] if len(groups) > 1 else groups[0]
+        self.camera_group = groups[0]
+        self.bullet_group = groups[2] if len(groups) > 2 else None 
+
         super().__init__(pos, player, target_group, stats)
         
-        # ★追加: コンフィグで指定されたサイズに合わせて Hitbox (当たり判定) を再調整
-        # Enemyクラスの自動計算ではなく、手動で設定する
+        # Hitboxの手動設定
         if "hitbox" in boss_data:
             hb_w, hb_h = boss_data["hitbox"]
-            # 画像の中心に合わせてRectを作る
             self.hitbox = pygame.Rect(0, 0, hb_w, hb_h)
             self.hitbox.center = self.rect.center
 
-        # 描画・更新グループへの登録
+        # グループ登録 (弾グループ以外)
         for g in groups:
-            g.add(self)
+            if g != self.bullet_group:
+                g.add(self)
+
+        # 攻撃用タイマー
+        self.last_attack_time = pygame.time.get_ticks() - 2000
+        self.attack_cooldown = 1500 
+
+    def update(self, dt):
+        super().update(dt)
+        self.check_attack()
+
+    def check_attack(self):
+        now = pygame.time.get_ticks()
         
+        if self.bullet_group is None:
+            return
+
+        if now - self.last_attack_time > self.attack_cooldown:
+            self.last_attack_time = now
+            self.perform_skill()
+
+    def perform_skill(self):
+        # ★修正: config.py の attacks リストを使って攻撃する
+        # これにより、config側で設定した弾のサイズや速度が反映されます
+        attack_list = self.stats.get("attacks", [])
+        base_damage = self.stats["damage"]
+        
+        if not attack_list:
+            return
+
+        for atk in attack_list:
+            atk_type = atk["type"]
+            img_name = atk["image"]
+            count = atk["count"]
+            speed = atk["speed"]
+            size = atk.get("size", None) # configのサイズを取得
+            dmg_rate = atk.get("damage_rate", 1.0)
+            
+            final_damage = int(base_damage * dmg_rate)
+            
+            if atk_type == "circle":
+                self.shoot_circle(count, speed, final_damage, img_name, size)
+            
+            elif atk_type == "target":
+                self.shoot_at(self.player.pos, speed, final_damage, img_name, size)
+            
+            elif atk_type == "random" or atk_type == "target_rapid":
+                for _ in range(count):
+                    offset = (random.randint(-60, 60), random.randint(-60, 60))
+                    target = self.player.pos + pygame.math.Vector2(offset)
+                    self.shoot_at(target, speed, final_damage, img_name, size)
+
+    # ★引数に size を追加
+    def shoot_at(self, target_pos, speed, damage, img, size=None):
+        
+        # 発射位置調整
+        # ボスが 600px (半径300px) なので、350px 外側から発射する
+        direction = pygame.math.Vector2(target_pos) - self.pos
+        if direction.length() > 0: direction = direction.normalize()
+        spawn_pos = self.pos + direction * 350 
+
+        EnemyProjectile(spawn_pos, target_pos, speed, damage, [self.camera_group, self.bullet_group], img, scale_size=size)
+
+    # ★引数に size を追加
+    def shoot_circle(self, count, speed, damage, img, size=None):
+        
+        for i in range(count):
+            angle = (360 / count) * i
+            rad = math.radians(angle)
+            vec = pygame.math.Vector2(math.cos(rad), math.sin(rad))
+            
+            # ここも 350px に調整
+            spawn_pos = self.pos + vec * 350
+            target = self.pos + vec * 450
+            
+            EnemyProjectile(spawn_pos, target, speed, damage, [self.camera_group, self.bullet_group], img, scale_size=size)
+
     def take_damage(self, amount, knockback_force=0):
-        # ボスはノックバック耐性90%
         super().take_damage(amount, knockback_force * 0.1)

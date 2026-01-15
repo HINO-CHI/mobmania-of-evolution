@@ -240,9 +240,19 @@ BOSS_SCHEDULE = {
         "name": "Big Tree",
         "hp": 500,
         "damage": 10,
-        "scale": (600, 600),       # 表示サイズ (幅, 高さ)
-        "hitbox": (400, 400),        # 当たり判定サイズ (幅, 高さ) - 画像より小さくすると自然
-        "speed": 1.5
+        "scale": (600, 600),
+        "hitbox": (400, 400),
+        "speed": 1.5,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_edge.png",
+                "count": 8,
+                "speed": 3,
+                "size": (200, 200),  # ボスに合わせて弾も大きく
+                "damage_rate": 1.0
+            }
+        ]
     },
     2: {
         "filename": "mini_boss_kinoko.png",
@@ -251,7 +261,17 @@ BOSS_SCHEDULE = {
         "damage": 12,
         "scale": (600, 600),
         "hitbox": (400, 400),
-        "speed": 1.5
+        "speed": 1.5,
+        "attacks": [
+            {
+                "type": "random",
+                "image": "attack_spore_nomal.png",
+                "count": 4,
+                "speed": 3,
+                "size": (60, 60),
+                "damage_rate": 1.0
+            }
+        ]
     },
     3: {
         "filename": "mini_boss_turtle.png",
@@ -260,7 +280,17 @@ BOSS_SCHEDULE = {
         "damage": 15,
         "scale": (600, 600),
         "hitbox": (400, 400),
-        "speed": 1.2
+        "speed": 1.2,
+        "attacks": [
+            {
+                "type": "target",
+                "image": "attack_dust.png",
+                "count": 1,
+                "speed": 2,
+                "size": (240, 240), # 重い一撃
+                "damage_rate": 1.5
+            }
+        ]
     },
     4: {
         "filename": "mini_boss_kinoko_derk.png",
@@ -269,7 +299,17 @@ BOSS_SCHEDULE = {
         "damage": 18,
         "scale": (600, 600),
         "hitbox": (400, 400),
-        "speed": 1.6
+        "speed": 1.6,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_spore_poison.png",
+                "count": 16,
+                "speed": 4,
+                "size": (50, 50),
+                "damage_rate": 1.0
+            }
+        ]
     },
     5: {
         "filename": "mini_boss_cobra.png",
@@ -278,15 +318,43 @@ BOSS_SCHEDULE = {
         "damage": 25,
         "scale": (600, 600),
         "hitbox": (400, 400),
-        "speed": 1.8
+        "speed": 1.8,
+        "attacks": [
+            {
+                "type": "target_rapid", # 連射
+                "image": "attack_poison.png",
+                "count": 3,
+                "speed": 8,
+                "size": (80, 40),
+                "damage_rate": 1.0
+            }
+        ]
     },
     6: {
         "filename": "boss_golem.png",
         "name": "ANCIENT GOLEM",
         "hp": 10000,
         "damage": 40,
-        "scale": (800, 800),       # ラスボスなので超巨大に
-        "hitbox": (500, 500),      # 足元あたりに判定を置くイメージ
-        "speed": 0.8               # 巨大なので遅い
+        "scale": (800, 800),       # 超巨大
+        "hitbox": (500, 500),
+        "speed": 0.8,
+        "attacks": [
+            {
+                "type": "circle",
+                "image": "attack_laser.png",
+                "count": 24,
+                "speed": 4,
+                "size": (100, 30), # 長いレーザー
+                "damage_rate": 1.0
+            },
+            {
+                "type": "target",
+                "image": "attack_laser.png",
+                "count": 1,
+                "speed": 7,
+                "size": (150, 40), # 巨大レーザー
+                "damage_rate": 1.5
+            }
+        ]
     }
 }
