@@ -431,7 +431,7 @@ class GameplayScreen:
         bar_w = 600
         bar_h = 25
         x = (config.SCREEN_WIDTH - bar_w) // 2
-        y = 50 # 画面上部
+        y = 100 # 画面上部
         
         # 背景
         pygame.draw.rect(screen, (0, 0, 0), (x, y, bar_w, bar_h))
