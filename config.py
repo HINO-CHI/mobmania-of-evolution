@@ -93,7 +93,7 @@ MOB_BASE_STATS = {
 # --- 武器設定 ---
 ITEM_IMAGE_DIR = "assets/images/items"
 WEAPON_STATS = {
-    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 500, "cooldown": 600, "speed": 500, "spin_speed": 15},
+    "stick": {"name": "Wooden Stick", "tier": 0, "image": "items-level0-edge.png", "size": 80, "damage": 50, "cooldown": 600, "speed": 500, "spin_speed": 15},
     "pencil": {"name": "Magic Pencil", "tier": 1, "image": "items-level1-enpitu.png", "size": 60, "damage": 10, "cooldown": 500, "speed": 600},
     "bread": {"name": "Guardian Bread", "tier": 1, "image": "items-level1-shokupan.png", "size": 50, "damage": 5, "radius": 140, "orb_count": 3, "rot_speed": 0.05},
     "bear": {"name": "Bear Bomber", "tier": 1, "image": "items-level1-kumanuigurumi.png", "size": 120, "damage": 30, "cooldown": 1500, "fuse_time": 1000, "blast_radius": 150},
@@ -240,8 +240,8 @@ BOSS_SCHEDULE = {
         "name": "Big Tree",
         "hp": 500,
         "damage": 10,
-        "scale": (150, 150),       # 表示サイズ (幅, 高さ)
-        "hitbox": (80, 80),        # 当たり判定サイズ (幅, 高さ) - 画像より小さくすると自然
+        "scale": (600, 600),       # 表示サイズ (幅, 高さ)
+        "hitbox": (400, 400),        # 当たり判定サイズ (幅, 高さ) - 画像より小さくすると自然
         "speed": 1.5
     },
     2: {
@@ -249,8 +249,8 @@ BOSS_SCHEDULE = {
         "name": "Giant Kinoko",
         "hp": 800,
         "damage": 12,
-        "scale": (120, 120),
-        "hitbox": (70, 70),
+        "scale": (600, 600),
+        "hitbox": (400, 400),
         "speed": 1.5
     },
     3: {
@@ -258,8 +258,8 @@ BOSS_SCHEDULE = {
         "name": "Iron Turtle",
         "hp": 1500,
         "damage": 15,
-        "scale": (160, 120),
-        "hitbox": (100, 80),
+        "scale": (600, 600),
+        "hitbox": (400, 400),
         "speed": 1.2
     },
     4: {
@@ -267,8 +267,8 @@ BOSS_SCHEDULE = {
         "name": "Dark Kinoko",
         "hp": 2000,
         "damage": 18,
-        "scale": (130, 130),
-        "hitbox": (80, 80),
+        "scale": (600, 600),
+        "hitbox": (400, 400),
         "speed": 1.6
     },
     5: {
@@ -276,8 +276,8 @@ BOSS_SCHEDULE = {
         "name": "King Cobra",
         "hp": 3000,
         "damage": 25,
-        "scale": (180, 180),
-        "hitbox": (100, 100),
+        "scale": (600, 600),
+        "hitbox": (400, 400),
         "speed": 1.8
     },
     6: {
@@ -285,8 +285,8 @@ BOSS_SCHEDULE = {
         "name": "ANCIENT GOLEM",
         "hp": 10000,
         "damage": 40,
-        "scale": (250, 250),       # ラスボスなので超巨大に
-        "hitbox": (150, 180),      # 足元あたりに判定を置くイメージ
+        "scale": (800, 800),       # ラスボスなので超巨大に
+        "hitbox": (500, 500),      # 足元あたりに判定を置くイメージ
         "speed": 0.8               # 巨大なので遅い
     }
 }

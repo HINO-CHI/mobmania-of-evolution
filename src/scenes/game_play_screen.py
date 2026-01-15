@@ -178,35 +178,30 @@ class GameplayScreen:
 
     def check_boss_spawn(self):
         elapsed_ms = pygame.time.get_ticks() - self.start_time
-        current_minute = elapsed_ms // 60000  # ミリ秒 -> 分
+        current_minute = elapsed_ms // 60000
         
-        # スケジュールにあり、かつ まだ出現させていない場合
-        if current_minute in self.boss_schedule and current_minute not in self.spawned_boss_minutes:
-            data = self.boss_schedule[current_minute]
-            filename, name, hp, dmg, size = data
+        # config.BOSS_SCHEDULE を参照
+        if current_minute in config.BOSS_SCHEDULE and current_minute not in self.spawned_boss_minutes:
+            boss_data = config.BOSS_SCHEDULE[current_minute]
             
-            print(f"!!! SPAWNING BOSS: {name} at {current_minute} min !!!")
+            print(f"!!! SPAWNING BOSS: {boss_data['name']} at {current_minute} min !!!")
             
-            # ★変更: プレイヤーの頭上 200px の位置に出現（確実に見える位置）
+            # プレイヤーの頭上 250px
             px, py = self.player.rect.center
-            spawn_pos = (px - random.randint(-500, 500), py - random.randint(-500, 500))
+            spawn_pos = (px, py - 250)
             
+            # ★修正: 引数を boss_data にまとめる
             boss = Boss(
                 pos=spawn_pos, 
                 player=self.player, 
                 groups=[self.camera_group, self.enemies_group],
-                filename=filename,
-                boss_name=name,
-                hp=hp,
-                damage=dmg,
-                scale_size=size
+                boss_data=boss_data
             )
             
             self.active_boss = boss
             self.spawned_boss_minutes.add(current_minute)
             
-            # 警告テキスト表示
-            warning_text = FloatingText((px, py - 50), f"WARNING: {name}!!", (255, 0, 0), duration=3000)
+            warning_text = FloatingText((px, py - 50), f"WARNING: {boss_data['name']}!!", (255, 0, 0), duration=3000)
             self.camera_group.add(warning_text)
             
     def handle_events(self, events):
@@ -218,41 +213,35 @@ class GameplayScreen:
                     self.check_level_up()
                 if event.key == pygame.K_h:
                     self.camera_group.debug_mode = not self.camera_group.debug_mode
-                # ★デバッグ用: Tキーで時間を1分進める（ボス呼び出しテスト）
                 if event.key == pygame.K_t:
-                    self.start_time -= 60000
+                    self.start_time -= 10000
                     print("Debug: Time skipped +1 min")
 
                 if event.key == pygame.K_b:
                     print("Debug: Force Spawning Boss!")
-                    # Big Tree のデータを強制的に使う
-                    filename = "mini_boss_big_tree.png"
-                    name = "Debug Boss"
-                    hp = 500
-                    dmg = 10
-                    size = (120, 120)
+                    # デバッグ用のダミーデータ
+                    debug_boss_data = {
+                        "filename": "mini_boss_big_tree.png",
+                        "name": "Debug Boss",
+                        "hp": 500,
+                        "damage": 10,
+                        "scale": (120, 120),
+                        "hitbox": (80, 80),
+                        "speed": 1.5
+                    }
                     
                     px, py = self.player.rect.center
-                    spawn_pos = (px, py) # 頭上
+                    spawn_pos = (px, py - 200)
                     
                     boss = Boss(
                         pos=spawn_pos,
                         player=self.player,
                         groups=[self.camera_group, self.enemies_group],
-                        filename=filename,
-                        boss_name=name,
-                        hp=hp,
-                        damage=dmg,
-                        scale_size=size
+                        boss_data=debug_boss_data # ★修正
                     )
                     self.active_boss = boss
                     warning_text = FloatingText((px, py - 50), "DEBUG BOSS!!", (255, 0, 0), duration=2000)
                     self.camera_group.add(warning_text)
-
-                # ★追加: Tキーで時間を進める（既存のまま）
-                if event.key == pygame.K_t:
-                    self.start_time -= 60000
-                    print("Debug: Time skipped +1 min")
 
             if self.game_state == "LEVEL_UP":
                 if event.type == pygame.MOUSEBUTTONDOWN:

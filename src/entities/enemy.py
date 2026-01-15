@@ -186,32 +186,47 @@ def load_boss_image(filename, scale_size=None):
         return None
 
 class Boss(Enemy):
-    def __init__(self, pos, player, groups, filename, boss_name, hp, damage, scale_size=(100, 100)):
+    # 引数を整理: 個別の数値ではなく、configの辞書(boss_data)を受け取る形に変更
+    def __init__(self, pos, player, groups, boss_data):
+        
+        filename = boss_data["filename"]
+        scale_size = boss_data["scale"]
+        
+        # ボス用の画像読み込み
         img = load_boss_image(filename, scale_size)
         
+        # 画像がない場合のフォールバック
         if img is None:
             img = pygame.Surface(scale_size)
             img.fill((100, 0, 0) if "golem" in filename else (255, 100, 0))
 
+        # Enemyクラスに渡すstatsを作成
         stats = {
-            "hp": hp,
-            "max_hp": hp,
-            "speed": 1.5 if "golem" not in filename else 1.0,
-            "damage": damage,
-            "exp": 500,
-            "name": boss_name,
-            "image": img
+            "hp": boss_data["hp"],
+            "max_hp": boss_data["hp"],
+            "speed": boss_data["speed"],
+            "damage": boss_data["damage"],
+            "exp": 1000, # ボス経験値
+            "name": boss_data["name"],
+            "image": img 
         }
         
-        # Enemy初期化時、groupsの中からEnemy用グループを渡す
+        # Enemy初期化
         target_group = groups[1] if len(groups) > 1 else groups[0]
         super().__init__(pos, player, target_group, stats)
         
-        # ★重要: ボスを表示・動作させるために、渡された全グループ(camera_group, enemies_group)に追加する
+        # ★追加: コンフィグで指定されたサイズに合わせて Hitbox (当たり判定) を再調整
+        # Enemyクラスの自動計算ではなく、手動で設定する
+        if "hitbox" in boss_data:
+            hb_w, hb_h = boss_data["hitbox"]
+            # 画像の中心に合わせてRectを作る
+            self.hitbox = pygame.Rect(0, 0, hb_w, hb_h)
+            self.hitbox.center = self.rect.center
+
+        # 描画・更新グループへの登録
         for g in groups:
             g.add(self)
         
     def take_damage(self, amount, knockback_force=0):
-        # 親クラス(Enemy)の take_damage を呼び出す
-        # Enemy側でも knockback_force を受け取れるようになったのでエラーにならない
+        # ボスはノックバック耐性90%
         super().take_damage(amount, knockback_force * 0.1)
